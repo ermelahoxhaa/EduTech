@@ -12,8 +12,9 @@
     </div>
 
     <nav :class="['nav-links', { 'nav-links--open': isMenuOpen }]">
-      <a href="#" class="nav-link active">Home</a>
-      <a href="#" class="nav-link">Login</a>
+      <router-link to="/" class="nav-link">Home</router-link>
+      <router-link to="/login" class="nav-link">Login</router-link>
+
     </nav>
   </header>
 </template>
