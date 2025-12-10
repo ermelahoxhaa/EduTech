@@ -1,21 +1,36 @@
-const db = require("../config/db");
+
+const db = require('../db'); 
+
+
+exports.getNotifications = (req, res) => {
+  const sql = "SELECT * FROM notifications ORDER BY created_at DESC";
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error", err });
+    res.json(results);
+  });
+};
+
 
 exports.createNotification = (req, res) => {
   const { title, message, audience } = req.body;
 
-  db.query(
-    "INSERT INTO notifications(title,message,audience) VALUES(?,?,?)",
-    [title, message, audience],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json({ success: true });
-    }
-  );
+  if (!title || !message || !audience) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  const sql = "INSERT INTO notifications (title, message, audience) VALUES (?, ?, ?)";
+  db.query(sql, [title, message, audience], (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error", err });
+    res.status(201).json({ id: result.insertId, title, message, audience });
+  });
 };
 
-exports.getNotifications = (req, res) => {
-  db.query("SELECT * FROM notifications ORDER BY created_at DESC", (err, rows) => {
-    if (err) return res.status(500).json(err);
-    res.json(rows);
+
+exports.deleteNotification = (req, res) => {
+  const { id } = req.params;
+  const sql = "DELETE FROM notifications WHERE id = ?";
+  db.query(sql, [id], (err) => {
+    if (err) return res.status(500).json({ message: "Database error", err });
+    res.json({ message: "Notification deleted" });
   });
 };
