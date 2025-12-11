@@ -153,7 +153,7 @@ button {
 }
 
 button:hover {
-  background-color: #3aa876;
+  background-color: #0b56d1;
 }
 
 button:disabled {
@@ -168,7 +168,7 @@ button:disabled {
 }
 
 .auth-link a {
-  color: #42b983;
+  color: #0b56d1;
   text-decoration: none;
 }
 

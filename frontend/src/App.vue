@@ -25,6 +25,6 @@ export default {
 
 <style>
 .page {
-  padding-top: 120px;
+  padding-top: 100px;
 }
 </style>

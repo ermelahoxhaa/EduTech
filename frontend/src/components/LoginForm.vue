@@ -90,12 +90,12 @@ input {
 
 input:focus {
   outline: none;
-  border-color: #42b983;
+  border-color: #0b56d1;
 }
 
 button {
   padding: 0.75rem;
-  background-color: #42b983;
+  background-color: #0b56d1;
   color: white;
   border: none;
   border-radius: 4px;
@@ -105,7 +105,7 @@ button {
 }
 
 button:hover {
-  background-color: #3aa876;
+  background-color: #0b56d1;
 }
 
 .auth-link {
