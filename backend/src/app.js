@@ -3,11 +3,15 @@ import cors from "cors";
 
 const app = express();
 
-const notificationRoutes = require('./routes/notification');
-app.use('/api/notifications', notificationRoutes);
+app.use(cors({
+  origin: 'http://localhost:8080', 
+  credentials: true
+}));
 
-app.use(cors());
 app.use(express.json());
+
+import notificationRoutes from './routes/notifications.js';
+app.use('/api/notifications', notificationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend është gati dhe punon!");
