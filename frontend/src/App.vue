@@ -22,3 +22,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.page {
+  padding-top: 120px;
+}
+</style>
