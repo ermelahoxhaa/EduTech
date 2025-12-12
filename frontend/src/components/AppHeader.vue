@@ -105,14 +105,14 @@ export default {
 }
 
 .nav-link:hover {
-  color: #0b56d1;
+  color: #4F6466;
   background: rgba(59, 130, 246, 0.12);
 }
 
 .nav-link.active {
-  background: #0b56d1;
+  background: #4F6466;
   color: #ffffff;
-  box-shadow: 0 12px 30px rgba(11, 86, 209, 0.25);
+  box-shadow: 0 12px 30px #4b5d5f;
 }
 
 @media (min-width: 768px) {

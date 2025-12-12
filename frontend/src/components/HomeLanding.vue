@@ -60,12 +60,11 @@ export default {
 
 <style scoped>
 .landing {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 45%, #e7efff 100%);
-  border-radius: 32px;
-  padding: 2.75rem;
+  background: #f8f9fa;
+  padding: 2rem;
   display: grid;
-  gap: 2.5rem;
-  box-shadow: 0 24px 80px rgba(13, 25, 48, 0.08);
+  gap: 2rem;
+  min-height: 100vh;
 }
 
 .content {
@@ -88,7 +87,7 @@ h1 {
 }
 
 .lead {
-  color: #4a5670;
+  color: #6c757d;
   font-size: 1.05rem;
   line-height: 1.7;
   margin-bottom: 1.5rem;
@@ -111,15 +110,18 @@ h1 {
 }
 
 .cta.primary {
-  background: #0b56d1;
+  background: #4F6466;
   color: #ffffff;
-  box-shadow: 0 15px 30px rgba(11, 86, 209, 0.3);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cta.ghost {
   background: transparent;
-  color: #0b56d1;
-  border: 1px solid rgba(11, 86, 209, 0.4);
+  color: #4F6466;
+  border: 1px solid #4F6466;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cta:hover {
@@ -136,25 +138,32 @@ h1 {
 }
 
 .pillars li {
-  background: rgba(255, 255, 255, 0.65);
-  border-radius: 20px;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(13, 25, 48, 0.08);
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pillars li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
 }
 
 .label {
   display: inline-flex;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  background: rgba(11, 86, 209, 0.08);
-  color: #0b56d1;
+  background: rgba(79, 100, 102, 0.1);
+  color: #4F6466;
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .pillars p {
   margin: 0.35rem 0 0;
-  color: #4a5670;
+  color: #6c757d;
   font-size: 0.95rem;
 }
 
@@ -171,18 +180,19 @@ h1 {
 
 .card {
   background: #ffffff;
-  border-radius: 24px;
+  border-radius: 0.5rem;
   padding: 1.5rem;
   min-width: 220px;
-  border: 1px solid rgba(13, 25, 48, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 12px 30px rgba(13, 25, 48, 0.08);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card.accent {
-  background: linear-gradient(135deg, #0b56d1, #2563eb);
+  background: #4F6466;
   color: white;
   transform: translateX(25px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
 }
 
 .card-title {
