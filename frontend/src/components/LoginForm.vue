@@ -41,10 +41,17 @@ const form = ref({
   password: ''
 })
 
-const handleLogin = () => {
-  console.log('Login data:', form.value)
-  alert('Login successful!')
-  router.push('/')
+import axios from 'axios'
+
+const handleLogin = async () => {
+  try {
+    await axios.post('http://localhost:5000/login', form.value)
+    // Store token if you want: localStorage.setItem('token', res.data.token)
+    alert('Login successful!')
+    router.push('/')
+  } catch (error) {
+    alert(error.response?.data?.message || 'Login failed!')
+  }
 }
 </script>
 

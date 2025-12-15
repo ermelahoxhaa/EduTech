@@ -80,13 +80,17 @@ const passwordMismatch = computed(() => {
          form.value.password !== form.value.retryPassword
 })
 
-const handleSignup = () => {
+import axios from 'axios'
+
+const handleSignup = async () => {
   if (passwordMismatch.value) return
-  
-  console.log('Signup data:', form.value)
-  // Here you would normally send data to your API
-  alert('Account created successfully!')
-  router.push('/login')
+  try {
+    await axios.post('http://localhost:5000/register', form.value)
+    alert('Account created successfully!')
+    router.push('/login')
+  } catch (error) {
+    alert(error.response?.data?.message || 'Signup failed!')
+  }
 }
 </script>
 
