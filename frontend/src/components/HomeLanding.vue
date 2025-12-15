@@ -12,8 +12,8 @@
         accelerate student success.
       </p>
       <div class="cta-group">
-        <button class="cta primary">Explore Home</button>
-        <button class="cta ghost">Go to Login</button>
+        <router-link to="/login" class="cta ghost">Go to Login</router-link>
+        <router-link to="/signup" class="cta ghost">Sign Up</router-link>
       </div>
       <ul class="pillars">
         <li>

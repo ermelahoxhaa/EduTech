@@ -30,3 +30,9 @@ export default {
   }
 }
 </script>
+
+<style>
+.page {
+  padding-top: 100px;
+}
+</style>
