@@ -1,12 +1,12 @@
-const express = require('express');
+import express from 'express';
+import * as assignmentController from '../controllers/assignmentController.js';
+import { authenticate, authorize } from '../middleware/auth.js';
+
 const router = express.Router();
-const assignmentController = require('../controllers/assignmentController');
-const { isAuthenticated, isProfessorOrAdmin } = require('../middleware/auth');
 
-router.use(isAuthenticated);
-router.post('/', isProfessorOrAdmin, assignmentController.createAssignment);
-router.get('/course/:courseId', assignmentController.getAssignmentsByCourse);
-router.put('/:id', isProfessorOrAdmin, assignmentController.updateAssignment);
-router.delete('/:id', isProfessorOrAdmin, assignmentController.deleteAssignment);
+router.post('/', authenticate, authorize(['admin', 'teacher']), assignmentController.createAssignment);
+router.get('/course/:courseId', authenticate, assignmentController.getAssignmentsByCourse);
+router.put('/:id', authenticate, authorize(['admin', 'teacher']), assignmentController.updateAssignment);
+router.delete('/:id', authenticate, authorize(['admin', 'teacher']), assignmentController.deleteAssignment);
 
-module.exports = router;
+export default router;

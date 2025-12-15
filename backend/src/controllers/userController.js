@@ -1,32 +1,42 @@
-import db from '../db.js';
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
-export const getUsers = (req, res) => {
-  db.query("SELECT id, name, email, role FROM users", (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+export const getUsers = async (req, res) => {
+  try {
+    const users = await DataAccessLayer.getAllUsers();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const getTeachers = (req, res) => {
-  db.query("SELECT id, name, email FROM users WHERE role = 'teacher'", (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+export const getTeachers = async (req, res) => {
+  try {
+    const teachers = await DataAccessLayer.getUsersByRole('teacher');
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const getStudents = (req, res) => {
-  db.query("SELECT id, name, email FROM users WHERE role = 'student'", (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+export const getStudents = async (req, res) => {
+  try {
+    const students = await DataAccessLayer.getUsersByRole('student');
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-export const getUserById = (req, res) => {
-  const { id } = req.params;
-  
-  db.query("SELECT id, name, email, role FROM users WHERE id = ?", [id], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json(rows[0]);
-  });
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await DataAccessLayer.getUser(id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };

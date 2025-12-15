@@ -1,8 +1,9 @@
-const Assignment = require('../models/Assignment');
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
-exports.createAssignment = async (req, res) => {
+export const createAssignment = async (req, res) => {
   try {
-    const assignment = await Assignment.create(req.body);
+    const assignmentId = await DataAccessLayer.createAssignment(req.body);
+    const assignment = await DataAccessLayer.getAssignment(assignmentId);
     res.status(201).json({
       success: true,
       data: assignment
@@ -16,10 +17,10 @@ exports.createAssignment = async (req, res) => {
   }
 };
 
-exports.getAssignmentsByCourse = async (req, res) => {
+export const getAssignmentsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const assignments = await Assignment.getByCourseId(courseId);
+    const assignments = await DataAccessLayer.getAssignmentsByCourseId(courseId);
     res.json({
       success: true,
       data: assignments
@@ -33,10 +34,19 @@ exports.getAssignmentsByCourse = async (req, res) => {
   }
 };
 
-exports.updateAssignment = async (req, res) => {
+export const updateAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const assignment = await Assignment.update(id, req.body);
+    const updated = await DataAccessLayer.updateAssignment(id, req.body);
+    
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
+    }
+
+    const assignment = await DataAccessLayer.getAssignment(id);
     res.json({
       success: true,
       data: assignment
@@ -50,10 +60,18 @@ exports.updateAssignment = async (req, res) => {
   }
 };
 
-exports.deleteAssignment = async (req, res) => {
+export const deleteAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    await Assignment.delete(id);
+    const deleted = await DataAccessLayer.deleteAssignment(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found'
+      });
+    }
+
     res.json({
       success: true,
       message: 'Assignment deleted successfully'

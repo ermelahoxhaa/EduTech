@@ -1,17 +1,21 @@
-const UserDAO = require("../dao/UserDAO");
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
 class UserService {
   async listUsers() {
-    return await UserDAO.getAllUsers();
+    return await DataAccessLayer.getAllUsers();
   }
 
   async listStudents() {
-    return await UserDAO.getByRole("student");
+    return await DataAccessLayer.getUsersByRole("student");
   }
 
   async listTeachers() {
-    return await UserDAO.getByRole("teacher");
+    return await DataAccessLayer.getUsersByRole("teacher");
+  }
+
+  async getUserById(id) {
+    return await DataAccessLayer.getUser(id);
   }
 }
 
-module.exports = new UserService();
+export default new UserService();

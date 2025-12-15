@@ -1,9 +1,9 @@
-import db from '../db.js';
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
 export const getNotifications = async (req, res) => {
   try {
-    const [results] = await db.query("SELECT * FROM notifications ORDER BY created_at DESC");
-    res.json(results);
+    const notifications = await DataAccessLayer.getNotifications();
+    res.json(notifications);
   } catch (err) {
     console.error('Database error:', err);
     res.status(500).json({ message: "Database error", error: err.message });
@@ -12,11 +12,11 @@ export const getNotifications = async (req, res) => {
 
 export const getNotificationById = async (req, res) => {
   try {
-    const [results] = await db.query("SELECT * FROM notifications WHERE id = ?", [req.params.id]);
-    if (results.length === 0) {
+    const notification = await DataAccessLayer.getNotification(req.params.id);
+    if (!notification) {
       return res.status(404).json({ message: "Notification not found" });
     }
-    res.json(results[0]);
+    res.json(notification);
   } catch (err) {
     console.error('Database error:', err);
     res.status(500).json({ message: "Database error", error: err.message });
@@ -31,15 +31,9 @@ export const createNotification = async (req, res) => {
   }
 
   try {
-    const [result] = await db.query(
-      "INSERT INTO notifications (title, message, audience) VALUES (?, ?, ?)",
-      [title, message, audience]
-    );
-    const [newNotification] = await db.query(
-      "SELECT * FROM notifications WHERE id = ?",
-      [result.insertId]
-    );
-    res.status(201).json(newNotification[0]);
+    const notificationId = await DataAccessLayer.createNotification({ title, message, audience });
+    const newNotification = await DataAccessLayer.getNotification(notificationId);
+    res.status(201).json(newNotification);
   } catch (err) {
     console.error('Database error:', err);
     res.status(500).json({ message: "Database error", error: err.message });
@@ -55,21 +49,14 @@ export const updateNotification = async (req, res) => {
   }
 
   try {
-    const [result] = await db.query(
-      "UPDATE notifications SET title = ?, message = ?, audience = ? WHERE id = ?",
-      [title, message, audience, id]
-    );
+    const updated = await DataAccessLayer.updateNotification(id, { title, message, audience });
     
-    if (result.affectedRows === 0) {
+    if (!updated) {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    const [updatedNotification] = await db.query(
-      "SELECT * FROM notifications WHERE id = ?",
-      [id]
-    );
-    
-    res.json(updatedNotification[0]);
+    const updatedNotification = await DataAccessLayer.getNotification(id);
+    res.json(updatedNotification);
   } catch (err) {
     console.error('Database error:', err);
     res.status(500).json({ message: "Database error", error: err.message });
@@ -79,8 +66,8 @@ export const updateNotification = async (req, res) => {
 export const deleteNotification = async (req, res) => {
   const { id } = req.params;
   try {
-    const [result] = await db.query("DELETE FROM notifications WHERE id = ?", [id]);
-    if (result.affectedRows === 0) {
+    const deleted = await DataAccessLayer.deleteNotification(id);
+    if (!deleted) {
       return res.status(404).json({ message: "Notification not found" });
     }
     res.json({ message: "Notification deleted successfully" });
