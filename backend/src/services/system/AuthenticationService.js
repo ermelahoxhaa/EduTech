@@ -4,6 +4,10 @@ import DataAccessLayer from '../../dataAccess/DataAccessLayer.js';
 
 class AuthenticationService {
   async login(email, password) {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured. Please set it in .env file.');
+    }
+
     const user = await DataAccessLayer.getUserByEmail(email);
 
     if (!user) {
@@ -51,18 +55,23 @@ class AuthenticationService {
       throw new Error('Email already exists.');
     }
 
+    // Signup is only for students - enforce this
     const hashedPassword = await bcrypt.hash(password, 10);
     await DataAccessLayer.createUser({
       name,
       email,
       password: hashedPassword,
-      role: 0
+      role: 'student' // Always student for signup
     });
 
-    return { message: 'User was successfully registered.' };
+    return { message: 'Student account created successfully. You can now login.' };
   }
 
   verifyToken(token) {
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return null;
+    }
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       return decoded;

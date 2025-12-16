@@ -1,4 +1,5 @@
 import AuthenticationService from '../services/system/AuthenticationService.js';
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
 class AuthController {
   static async login(req, res) {
@@ -53,6 +54,26 @@ class AuthController {
     } catch (err) {
       console.error('Error during logout:', err.message);
       res.status(500).json({ message: 'Error while processing logout.' });
+    }
+  }
+
+  static async getMe(req, res) {
+    try {
+      const user = await DataAccessLayer.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      return res.json({ 
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name
+        }
+      });
+    } catch (err) {
+      console.error('Error getting user:', err.message);
+      res.status(500).json({ message: 'Error while processing request.' });
     }
   }
 }

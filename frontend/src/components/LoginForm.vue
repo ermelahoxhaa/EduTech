@@ -47,24 +47,29 @@ const form = ref({
   password: ''
 })
 
-import axios from 'axios'
+import { useAuth } from '@/composables/useAuth'
+
+const { login } = useAuth()
 
 const handleLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:5000/api/auth/login', form.value, {
-      withCredentials: true
-    })
+    const result = await login(form.value.email, form.value.password)
     
-    // Store user info in localStorage if needed
-    if (response.data.user) {
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      localStorage.setItem('token', response.data.token)
+    if (result.success) {
+      const userRole = result.user.role
+      if (userRole === 'admin' || userRole === 'teacher') {
+        router.push('/course')
+      } else if (userRole === 'student') {
+        router.push('/dashboard')
+      } else {
+        router.push('/')
+      }
+    } else {
+      alert(result.message || 'Login failed! Please check your credentials.')
     }
-    
-    alert('Login successful!')
-    router.push('/')
   } catch (error) {
-    alert(error.response?.data?.message || 'Login failed!')
+    console.error('Login error:', error)
+    alert('An error occurred during login. Please try again.')
   }
 }
 </script>

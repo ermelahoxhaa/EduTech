@@ -4,7 +4,7 @@
       <div class="auth-header">
         <p class="eyebrow">Join EduTech</p>
         <h2>Create Your Account</h2>
-        <p class="subtitle">Start your learning journey with us</p>
+        <p class="subtitle">Sign up as a student to start your learning journey</p>
       </div>
       <form @submit.prevent="handleSignup" class="auth-form">
         <div class="form-group">
@@ -91,7 +91,6 @@ import axios from 'axios'
 const handleSignup = async () => {
   if (passwordMismatch.value) return
   
-  // Combine name and surname for the backend
   const signupData = {
     name: `${form.value.name} ${form.value.surname}`.trim(),
     email: form.value.email,

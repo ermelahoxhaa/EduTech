@@ -4,7 +4,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', courseController.getCourses);
+router.get('/', authenticate, courseController.getCourses);
 router.post('/', authenticate, authorize(['admin', 'teacher']), courseController.createCourse);
 router.put('/:id', authenticate, authorize(['admin', 'teacher']), courseController.updateCourse);
 router.delete('/:id', authenticate, authorize(['admin']), courseController.deleteCourse);

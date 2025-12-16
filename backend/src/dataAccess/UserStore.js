@@ -22,7 +22,12 @@ class UserStore {
   }
 
   async createUser(userData) {
-    const { name, email, password, role = 0 } = userData;
+    const { name, email, password, role = 'student' } = userData;
+    
+    if (!['admin', 'teacher', 'student', 'parent'].includes(role)) {
+      throw new Error('Invalid role');
+    }
+    
     const [result] = await db.query(
       'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
       [name, email, password, role]

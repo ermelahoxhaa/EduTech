@@ -189,9 +189,16 @@
 
 <script>
 import axios from 'axios';
+import { useAuth } from '@/composables/useAuth';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'CourseManagement',
+  setup() {
+    const { isAuthenticated, user, hasRole, checkAuth } = useAuth();
+    const router = useRouter();
+    return { isAuthenticated, user, hasRole, checkAuth, router };
+  },
   data() {
     return {
       courses: [],
@@ -219,6 +226,20 @@ export default {
     }
   },
   async created() {
+    if (!this.isAuthenticated) {
+      const isAuth = await this.checkAuth();
+      if (!isAuth) {
+        this.router.push('/login');
+        return;
+      }
+    }
+
+    if (!this.hasRole(['admin', 'teacher'])) {
+      alert('You do not have permission to access this page.');
+      this.router.push('/dashboard');
+      return;
+    }
+
     await this.fetchData();
   },
   methods: {
@@ -250,6 +271,8 @@ export default {
         const url = `${this.apiBaseUrl}${endpoint}`;
         console.log(`${method} ${url}`, data ? { data } : '');
         
+        const token = localStorage.getItem('token');
+        
         const config = {
           method,
           url,
@@ -258,6 +281,10 @@ export default {
           },
           withCredentials: true
         };
+
+        if (token) {
+          config.headers['x-auth-token'] = token;
+        }
 
         if (data) {
           config.data = data;
@@ -271,6 +298,12 @@ export default {
           response: error.response?.data,
           status: error.response?.status
         });
+        
+        if (error.response?.status === 401) {
+          alert('Your session has expired. Please login again.');
+          this.router.push('/login');
+        }
+        
         throw error;
       }
     },

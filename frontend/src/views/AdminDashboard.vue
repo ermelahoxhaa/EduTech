@@ -57,10 +57,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { logout, isAuthenticated, checkAuth, hasRole } = useAuth()
 
 const stats = ref([
   { title: 'Total Users', value: 25, icon: 'fas fa-users stat-icon' },
@@ -68,9 +70,24 @@ const stats = ref([
   { title: 'Total Notifications', value: 5, icon: 'fas fa-bell stat-icon' },
 ])
 
-const handleLogout = () => {
-  alert('Logging out...')
-  router.push('/login') 
+onMounted(async () => {
+  if (!isAuthenticated.value) {
+    const isAuth = await checkAuth();
+    if (!isAuth) {
+      router.push('/login');
+      return;
+    }
+  }
+
+  if (!hasRole(['admin', 'teacher', 'student'])) {
+    alert('You do not have permission to access this page.');
+    router.push('/login');
+    return;
+  }
+})
+
+const handleLogout = async () => {
+  await logout()
 }
 </script>
 

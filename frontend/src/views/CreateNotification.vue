@@ -125,12 +125,16 @@
 <script>
 import axios from 'axios';
 import { useToast } from 'vue-toast-notification';
+import { useAuth } from '@/composables/useAuth';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'CreateNotification',
   setup() {
     const toast = useToast();
-    return { toast };
+    const { isAuthenticated, hasRole, checkAuth } = useAuth();
+    const router = useRouter();
+    return { toast, isAuthenticated, hasRole, checkAuth, router };
   },
   data() {
     return {
@@ -144,7 +148,21 @@ export default {
       isEditing: false
     };
   },
-  created() {
+  async created() {
+    if (!this.isAuthenticated) {
+      const isAuth = await this.checkAuth();
+      if (!isAuth) {
+        this.router.push('/login');
+        return;
+      }
+    }
+
+    if (!this.hasRole(['admin', 'teacher'])) {
+      alert('You do not have permission to access this page.');
+      this.router.push('/dashboard');
+      return;
+    }
+
     this.fetchNotifications();
   },
   methods: {
@@ -184,12 +202,21 @@ export default {
     },
     async fetchNotifications() {
       try {
-        const res = await axios.get('http://localhost:5000/api/notifications', { withCredentials: true });
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:5000/api/notifications', { 
+          headers: { 'x-auth-token': token },
+          withCredentials: true 
+        });
         this.notifications = (Array.isArray(res.data) ? res.data : []).filter(note => note != null);
       } catch (err) {
         console.error('Error fetching notifications:', err);
-        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch notifications';
-        this.toast.error(errorMessage);
+        if (err.response?.status === 401) {
+          alert('Your session has expired. Please login again.');
+          this.router.push('/login');
+        } else {
+          const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch notifications';
+          this.toast.error(errorMessage);
+        }
         this.notifications = [];
       }
     },
@@ -220,7 +247,11 @@ export default {
         
         const method = this.isEditing ? 'put' : 'post';
         
-        const res = await axios[method](url, this.form, { withCredentials: true });
+        const token = localStorage.getItem('token');
+        const res = await axios[method](url, this.form, { 
+          headers: { 'x-auth-token': token },
+          withCredentials: true 
+        });
         
         if (this.isEditing) {
           this.notifications = this.notifications.map(n => 
@@ -247,7 +278,11 @@ export default {
       if (!confirm('Are you sure you want to delete this notification?')) return;
       
       try {
-        await axios.delete(`http://localhost:5000/api/notifications/${id}`, { withCredentials: true });
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:5000/api/notifications/${id}`, { 
+          headers: { 'x-auth-token': token },
+          withCredentials: true 
+        });
         this.notifications = this.notifications.filter(n => n?.id !== id);
         this.toast.success('Notification deleted successfully!');
       } catch (err) {
