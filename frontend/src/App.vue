@@ -26,8 +26,8 @@ export default {
    setup() {
     const route = useRoute()
     const hideLayout = computed(() => {
-      const dashboardRoutes = ['/dashboard', '/createnotification', '/course', '/manage-users']
-      return dashboardRoutes.includes(route.path)
+      const dashboardRoutes = ['/dashboard', '/createnotification', '/course', '/manage-users', '/my-teaching-courses', '/teacher/course']
+      return dashboardRoutes.some(routePath => route.path.startsWith(routePath))
     })
     return { hideLayout }
   }

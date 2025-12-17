@@ -1,10 +1,27 @@
-const DashboardService = require("../services/DashboardService");
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
-exports.getAdminDashboard = async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
-    const stats = await DashboardService.getAdminStats();
+    const [users, courses, notifications, assignments] = await Promise.all([
+      DataAccessLayer.getAllUsers(),
+      DataAccessLayer.getCourses(),
+      DataAccessLayer.getNotifications(),
+      DataAccessLayer.getAssignments()
+    ]);
+
+    const stats = {
+      totalUsers: users?.length || 0,
+      totalCourses: courses?.length || 0,
+      totalNotifications: notifications?.length || 0,
+      totalAssignments: assignments?.length || 0,
+      totalStudents: users?.filter(u => u.role === 'student').length || 0,
+      totalTeachers: users?.filter(u => u.role === 'teacher').length || 0,
+      recentActivity: []
+    };
+
     res.json(stats);
   } catch (err) {
-    res.status(500).json(err);
+    console.error('Error fetching dashboard stats:', err);
+    res.status(500).json({ error: err.message });
   }
 };

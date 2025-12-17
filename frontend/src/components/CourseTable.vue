@@ -120,14 +120,17 @@
                 </td>
                 <td data-label="Teacher">{{ getTeacherName(course.teacher_id) }}</td>
                 <td data-label="Actions" class="actions-cell">
-                  <button @click="editCourse(course)" class="btn-icon" title="Edit">
+                  <button @click="editCourse(course)" class="btn-action" title="Edit Course">
                     <i class="fas fa-edit"></i>
+                    <span>Edit</span>
                   </button>
-                  <button @click="confirmDelete(course.id)" class="btn-icon btn-danger" title="Delete">
+                  <button @click="confirmDelete(course.id)" class="btn-action btn-danger" title="Delete Course">
                     <i class="fas fa-trash"></i>
+                    <span>Delete</span>
                   </button>
-                  <button @click="viewEnrollments(course)" class="btn-icon btn-primary" title="Manage Students">
+                  <button @click="viewEnrollments(course)" class="btn-action btn-primary" title="Manage Students">
                     <i class="fas fa-user-graduate"></i>
+                    <span>Students</span>
                   </button>
                 </td>
               </tr>
@@ -156,8 +159,9 @@
               <ul class="student-list">
                 <li v-for="student in enrolledStudents" :key="'enrolled-'+student.id">
                   <span>{{ student.name }}</span>
-                  <button @click="unenrollStudent(student.id)" class="btn-icon btn-danger btn-sm" title="Remove">
+                  <button @click="unenrollStudent(student.id)" class="btn-action btn-danger" title="Remove Student">
                     <i class="fas fa-user-minus"></i>
+                    <span>Remove</span>
                   </button>
                 </li>
                 <li v-if="enrolledStudents.length === 0" class="empty-message">
@@ -174,8 +178,9 @@
               <ul class="student-list">
                 <li v-for="student in availableStudents" :key="'available-'+student.id">
                   <span>{{ student.name }}</span>
-                  <button @click="enrollStudent(student.id)" class="btn-icon btn-success btn-sm" title="Enroll">
+                  <button @click="enrollStudent(student.id)" class="btn-action btn-success" title="Enroll Student">
                     <i class="fas fa-user-plus"></i>
+                    <span>Enroll</span>
                   </button>
                 </li>
                 <li v-if="availableStudents.length === 0" class="empty-message">
@@ -390,6 +395,8 @@ export default {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .sidebar {
@@ -693,59 +700,63 @@ export default {
   justify-content: flex-end;
 }
 
-.btn-icon {
-  width: 36px;
-  height: 36px;
+.btn-action {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #dee2e6;
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   background: transparent;
   color: #6c757d;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.btn-icon:hover {
+.btn-action:hover {
   background-color: #f8f9fa;
   color: #4F6466;
+  border-color: #4F6466;
 }
 
-.btn-icon.btn-danger {
+.btn-action i {
+  font-size: 0.875rem;
+}
+
+.btn-action.btn-danger {
   color: #dc3545;
+  border-color: #dc3545;
 }
 
-.btn-icon.btn-danger:hover {
+.btn-action.btn-danger:hover {
   background-color: #dc3545;
   border-color: #dc3545;
   color: white;
 }
 
-.btn-icon.btn-primary {
+.btn-action.btn-primary {
   color: #4F6466;
+  border-color: #4F6466;
 }
 
-.btn-icon.btn-primary:hover {
+.btn-action.btn-primary:hover {
   background-color: #4F6466;
   border-color: #4F6466;
   color: white;
 }
 
-.btn-icon.btn-success {
+.btn-action.btn-success {
   color: #198754;
+  border-color: #198754;
 }
 
-.btn-icon.btn-success:hover {
+.btn-action.btn-success:hover {
   background-color: #198754;
   border-color: #198754;
   color: white;
-}
-
-.btn-icon.btn-sm {
-  width: 30px;
-  height: 30px;
-  font-size: 0.8rem;
 }
 
 .empty-state {
@@ -831,9 +842,19 @@ export default {
   .sidebar-toggle {
     display: none;
   }
+  
+  .main-content {
+    margin-left: 250px;
+    transition: margin-left 0.3s ease;
+  }
+  
+  .sidebar-collapsed .main-content {
+    margin-left: 70px;
+  }
 
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .form-group.full-width {
@@ -842,25 +863,48 @@ export default {
 
   .enrollment-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    min-width: 70px;
+  }
+  
+  .sidebar .nav-text {
+    display: none;
+  }
+  
+  .sidebar .nav-link {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+  
+  .sidebar-header h5 {
+    font-size: 0.7rem;
+  }
+  
   .main-content {
+    margin-left: 70px;
     padding: 1.5rem;
+    transition: margin-left 0.3s ease, padding 0.3s ease;
   }
 
   .content-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
 
   .content-header h2 {
-    font-size: 1.25rem;
+    font-size: clamp(1.1rem, 4vw, 1.25rem);
   }
 
   .btn-primary-custom {
     justify-content: center;
+    width: 100%;
   }
 
   .data-table thead {
@@ -908,25 +952,52 @@ export default {
 
   .actions-cell {
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .btn-action {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .btn-action span {
+    display: none;
+  }
+
+  .btn-action i {
+    margin: 0;
   }
 }
 
 @media (max-width: 480px) {
-  .sidebar-collapsed .sidebar {
+  .sidebar {
     width: 60px;
     min-width: 60px;
   }
 
-  .sidebar-collapsed .main-content {
-    margin-left: 60px;
-  }
-
   .main-content {
+    margin-left: 60px;
     padding: 1rem;
+    transition: margin-left 0.3s ease, padding 0.3s ease;
   }
 
   .form-card-body {
     padding: 1rem;
+  }
+  
+  .content-header h2 {
+    font-size: clamp(1rem, 4vw, 1.1rem);
+  }
+  
+  .data-table td {
+    padding-left: 35%;
+    font-size: 0.85rem;
+  }
+  
+  .data-table td::before {
+    width: 35%;
+    font-size: 0.65rem;
   }
 
   .form-actions {

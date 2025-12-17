@@ -111,6 +111,9 @@ export default {
   color: #1a1a2e;
   line-height: 1.6;
   padding-top: 100px;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .hero {
@@ -335,6 +338,9 @@ export default {
   .hero {
     grid-template-columns: 1fr;
     text-align: center;
+    gap: 2rem;
+    padding: 3rem 1.5rem;
+    min-height: auto;
   }
   
   .hero-content {
@@ -346,6 +352,11 @@ export default {
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
+  }
+  
+  .hero-visual {
+    height: 300px;
+    min-height: 300px;
   }
   
   .hero-stats {

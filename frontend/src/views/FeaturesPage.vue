@@ -81,6 +81,9 @@ export default {
   line-height: 1.6;
   padding-top: 100px;
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .section-container {
@@ -172,6 +175,11 @@ export default {
 @media (max-width: 1024px) {
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .feature-card {
+    min-height: 200px;
   }
 }
 
@@ -192,6 +200,10 @@ export default {
     margin-bottom: 2rem;
   }
   
+  .section-title {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+  
   .features-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -199,6 +211,26 @@ export default {
   
   .feature-card {
     padding: 1.5rem;
+    min-height: auto;
+  }
+  
+  .feature-icon-wrapper {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .features-page {
+    padding-top: 80px;
+  }
+  
+  .section-container {
+    padding: 0 0.75rem;
+  }
+  
+  .feature-card {
+    padding: 1.25rem;
   }
 }
 </style>

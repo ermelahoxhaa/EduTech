@@ -57,8 +57,10 @@ const handleLogin = async () => {
     
     if (result.success) {
       const userRole = result.user.role
-      if (userRole === 'admin' || userRole === 'teacher') {
+      if (userRole === 'admin') {
         router.push('/dashboard')
+      } else if (userRole === 'teacher') {
+        router.push('/my-teaching-courses')
       } else if (userRole === 'student') {
         router.push('/my-courses')
       } else {

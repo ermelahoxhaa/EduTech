@@ -11,8 +11,10 @@ export function setupRouterGuards(router) {
       const userRole = user.value?.role
       if (userRole === 'student') {
         return next('/my-courses')
-      } else if (userRole === 'admin' || userRole === 'teacher') {
+      } else if (userRole === 'admin') {
         return next('/dashboard')
+      } else if (userRole === 'teacher') {
+        return next('/my-teaching-courses')
       }
     }
 
@@ -28,7 +30,7 @@ export function setupRouterGuards(router) {
         if (userRole === 'admin') {
           return next('/dashboard')
         } else if (userRole === 'teacher') {
-          return next('/dashboard')
+          return next('/my-teaching-courses')
         } else if (userRole === 'student') {
           return next('/my-courses')
         } else {

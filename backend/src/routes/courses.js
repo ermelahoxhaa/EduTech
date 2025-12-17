@@ -6,14 +6,18 @@ const router = express.Router();
 
 router.get('/public', courseController.getPublicCourses);
 
-router.get('/student/enrolled', authenticate, courseController.getStudentEnrolledCourses);
+router.get('/student/enrolled', authenticate, authorize(['student']), courseController.getStudentEnrolledCourses);
+router.get('/teacher/my-courses', authenticate, authorize(['teacher']), courseController.getTeacherCourses);
 
 router.get('/', authenticate, courseController.getCourses);
 router.post('/', authenticate, authorize(['admin', 'teacher']), courseController.createCourse);
-router.put('/:id', authenticate, authorize(['admin', 'teacher']), courseController.updateCourse);
-router.delete('/:id', authenticate, authorize(['admin']), courseController.deleteCourse);
+
 router.get('/:courseId/enrollments', authenticate, courseController.getCourseEnrollments);
 router.post('/:courseId/enroll', authenticate, authorize(['admin', 'teacher']), courseController.enrollStudent);
 router.delete('/:courseId/enroll/:studentId', authenticate, authorize(['admin', 'teacher']), courseController.unenrollStudent);
+
+router.get('/:id', authenticate, courseController.getCourse);
+router.put('/:id', authenticate, authorize(['admin', 'teacher']), courseController.updateCourse);
+router.delete('/:id', authenticate, authorize(['admin']), courseController.deleteCourse);
 
 export default router;

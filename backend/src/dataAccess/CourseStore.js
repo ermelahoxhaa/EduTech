@@ -86,6 +86,17 @@ class CourseStore {
     );
     return rows;
   }
+
+  async getTeacherCourses(teacherId) {
+    const [rows] = await db.query(
+      `SELECT c.*, 
+              (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.id) AS student_count
+       FROM courses c
+       WHERE c.teacher_id = ?`,
+      [teacherId]
+    );
+    return rows;
+  }
 }
 
 export default new CourseStore();

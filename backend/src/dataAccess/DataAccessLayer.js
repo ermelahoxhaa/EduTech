@@ -75,6 +75,10 @@ class DataAccessLayer {
     return await this.courseStore.getStudentCourses(studentId);
   }
 
+  async getTeacherCourses(teacherId) {
+    return await this.courseStore.getTeacherCourses(teacherId);
+  }
+
   async getNotifications() {
     return await this.notificationStore.getAllNotifications();
   }

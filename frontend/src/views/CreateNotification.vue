@@ -333,6 +333,8 @@ export default {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .sidebar {
@@ -716,15 +718,44 @@ export default {
   .sidebar-toggle {
     display: none;
   }
+  
+  .main-content {
+    margin-left: 250px;
+    transition: margin-left 0.3s ease;
+  }
+  
+  .sidebar-collapsed .main-content {
+    margin-left: 70px;
+  }
 }
 
 @media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    min-width: 70px;
+  }
+  
+  .sidebar .nav-text {
+    display: none;
+  }
+  
+  .sidebar .nav-link {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+  
+  .sidebar-header h5 {
+    font-size: 0.7rem;
+  }
+  
   .main-content {
+    margin-left: 70px;
     padding: 1.5rem;
+    transition: margin-left 0.3s ease, padding 0.3s ease;
   }
 
   .content-header h2 {
-    font-size: 1.25rem;
+    font-size: clamp(1.1rem, 4vw, 1.25rem);
   }
 
   .data-table thead {
@@ -776,21 +807,33 @@ export default {
 }
 
 @media (max-width: 480px) {
-  .sidebar-collapsed .sidebar {
+  .sidebar {
     width: 60px;
     min-width: 60px;
   }
 
-  .sidebar-collapsed .main-content {
-    margin-left: 60px;
-  }
-
   .main-content {
+    margin-left: 60px;
     padding: 1rem;
+    transition: margin-left 0.3s ease, padding 0.3s ease;
   }
 
   .form-card-body {
     padding: 1rem;
+  }
+  
+  .content-header h2 {
+    font-size: clamp(1rem, 4vw, 1.1rem);
+  }
+  
+  .data-table td {
+    padding-left: 35%;
+    font-size: 0.85rem;
+  }
+  
+  .data-table td::before {
+    width: 35%;
+    font-size: 0.65rem;
   }
 
   .form-actions {

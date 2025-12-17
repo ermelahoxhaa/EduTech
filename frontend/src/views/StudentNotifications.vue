@@ -133,6 +133,9 @@ export default {
   min-height: 100vh;
   background: #f8f9fa;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .page-main {
@@ -277,6 +280,17 @@ export default {
     padding-top: 100px;
   }
   
+  .main-container {
+    max-width: 100%;
+  }
+  
+  .welcome-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  
   .notification-item {
     flex-direction: column;
     gap: 0.75rem;
@@ -290,12 +304,26 @@ export default {
   .notification-badge-wrapper {
     order: -1;
   }
+  
+  .welcome-stats {
+    width: 100%;
+    justify-content: space-around;
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
   .page-main {
     padding: 0.75rem;
     padding-top: 90px;
+  }
+  
+  .welcome-section {
+    padding: 1.25rem;
+  }
+  
+  .welcome-content h1 {
+    font-size: clamp(1.1rem, 4vw, 1.25rem);
   }
   
   .page-header h1 {

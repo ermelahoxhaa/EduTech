@@ -1,15 +1,22 @@
 <template>
-  <div class="student-page">
+  <div class="teacher-page">
     <main class="page-main">
       <div class="main-container">
         <section class="welcome-section">
           <div class="welcome-content">
-            <h1>Welcome back, {{ user?.name?.split(' ')[0] || 'Student' }}! 👋</h1>
-            <p>Continue your learning journey. Here are your enrolled courses.</p>
+            <div class="welcome-header">
+              <div>
+                <h1>Welcome back, {{ user?.name?.split(' ')[0] || 'Teacher' }}! 👨‍🏫</h1>
+                <p>Manage your courses and help students succeed. Here are the courses you're teaching.</p>
+              </div>
+              <button @click="handleLogout" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </button>
+            </div>
           </div>
           <div class="welcome-stats">
             <div class="stat-card">
-              <span class="stat-value">{{ enrolledCourses.length }}</span>
+              <span class="stat-value">{{ myCourses.length }}</span>
               <span class="stat-label">Courses</span>
             </div>
           </div>
@@ -17,7 +24,7 @@
 
         <section class="courses-section">
           <div class="section-header">
-            <h2>📖 My Courses</h2>
+            <h2>📚 My Teaching Courses</h2>
           </div>
 
           <div v-if="loading" class="loading-container">
@@ -25,33 +32,32 @@
             <p>Loading your courses...</p>
           </div>
 
-          <div v-else-if="enrolledCourses.length === 0" class="empty-state">
-            <div class="empty-icon">📚</div>
-            <h3>No Courses Yet</h3>
-            <p>You haven't enrolled in any courses yet. Contact your administrator to get enrolled.</p>
+          <div v-else-if="myCourses.length === 0" class="empty-state">
+            <div class="empty-icon">📖</div>
+            <h3>No Courses Assigned</h3>
+            <p>You haven't been assigned to any courses yet. Contact your administrator to get assigned to courses.</p>
           </div>
 
           <div v-else class="courses-grid">
-            <article v-for="course in enrolledCourses" :key="course.id" class="course-card">
+            <article v-for="course in myCourses" :key="course.id" class="course-card" @click="viewCourseDetail(course.id)">
               <div class="course-header">
                 <div class="course-icon">{{ getCourseIcon(course.title) }}</div>
                 <span class="course-badge">{{ getCourseCategory(course.title) }}</span>
               </div>
-              <h3 class="course-title">{{ course.title }}</h3>
+              <h3 class="course-title">{{ getCleanTitle(course) }}</h3>
               <p class="course-description">
-                {{ course.description || 'An exciting course to enhance your knowledge and skills.' }}
+                {{ getCleanDescription(course) }}
               </p>
               <div class="course-meta">
                 <div class="meta-item">
-                  <span class="meta-icon">👨‍🏫</span>
-                  <span>{{ getTeacherName(course.teacher_id) }}</span>
+                  <span class="meta-icon">👥</span>
+                  <span>{{ course.student_count || 0 }} Students</span>
                 </div>
               </div>
-              <div class="course-progress">
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: getRandomProgress() + '%' }"></div>
-                </div>
-                <span class="progress-text">In Progress</span>
+              <div class="course-actions">
+                <button class="btn-manage" @click.stop="viewCourseDetail(course.id)">
+                  Manage Course →
+                </button>
               </div>
             </article>
           </div>
@@ -67,16 +73,15 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 export default {
-  name: 'StudentCourses',
+  name: 'TeacherCourses',
   setup() {
-    const { user, isAuthenticated, checkAuth, hasRole } = useAuth();
+    const { user, isAuthenticated, checkAuth, hasRole, logout } = useAuth();
     const router = useRouter();
-    return { user, isAuthenticated, checkAuth, hasRole, router };
+    return { user, isAuthenticated, checkAuth, hasRole, router, logout };
   },
   data() {
     return {
-      enrolledCourses: [],
-      teachers: [],
+      myCourses: [],
       loading: true,
       apiBaseUrl: 'http://localhost:5000/api'
     };
@@ -90,7 +95,7 @@ export default {
       }
     }
 
-    if (!this.hasRole(['student'])) {
+    if (!this.hasRole(['teacher'])) {
       this.router.push('/dashboard');
       return;
     }
@@ -104,22 +109,17 @@ export default {
         const token = localStorage.getItem('token');
         const headers = { 'x-auth-token': token };
 
-        const [coursesRes, teachersRes] = await Promise.all([
-          axios.get(`${this.apiBaseUrl}/courses/student/enrolled`, { headers, withCredentials: true }).catch(() => ({ data: [] })),
-          axios.get(`${this.apiBaseUrl}/users/teachers`, { headers, withCredentials: true }).catch(() => ({ data: [] }))
-        ]);
+        const response = await axios.get(`${this.apiBaseUrl}/courses/teacher/my-courses`, { 
+          headers, 
+          withCredentials: true 
+        }).catch(() => ({ data: [] }));
 
-        this.enrolledCourses = coursesRes.data || [];
-        this.teachers = teachersRes.data || [];
+        this.myCourses = response.data || [];
       } catch (error) {
-        console.error('Error fetching student data:', error);
+        console.error('Error fetching teacher courses:', error);
       } finally {
         this.loading = false;
       }
-    },
-    getTeacherName(teacherId) {
-      const teacher = this.teachers.find(t => t.id === teacherId);
-      return teacher ? teacher.name : 'Staff Instructor';
     },
     getCourseIcon(title) {
       const titleLower = (title || '').toLowerCase();
@@ -143,8 +143,32 @@ export default {
       if (titleLower.includes('computer') || titleLower.includes('programming')) return 'Technology';
       return 'General';
     },
-    getRandomProgress() {
-      return Math.floor(Math.random() * 60) + 20;
+    getCleanTitle(course) {
+      if (!course) return 'Course';
+      const title = course.title || '';
+      if (title.includes('Teacher') && title.includes('Description')) {
+        const parts = title.split('Teacher');
+        return parts[0].trim() || 'Course';
+      }
+      return title || 'Course';
+    },
+    getCleanDescription(course) {
+      if (!course) return 'Manage course materials, assignments, and grades for your students.';
+      const desc = course.description || '';
+      if (desc.includes('Teacher') && desc.includes('Description')) {
+        const parts = desc.split('Description');
+        if (parts.length > 1) {
+          const cleanDesc = parts[1].trim();
+          if (cleanDesc) return cleanDesc;
+        }
+      }
+      return desc || 'Manage course materials, assignments, and grades for your students.';
+    },
+    viewCourseDetail(courseId) {
+      this.router.push(`/teacher/course/${courseId}`);
+    },
+    async handleLogout() {
+      await this.logout();
     }
   }
 };
@@ -155,7 +179,7 @@ export default {
   box-sizing: border-box;
 }
 
-.student-page {
+.teacher-page {
   min-height: 100vh;
   background: #f8f9fa;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -185,6 +209,14 @@ export default {
   color: white;
 }
 
+.welcome-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 1rem;
+}
+
 .welcome-content h1 {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
@@ -194,6 +226,27 @@ export default {
   opacity: 0.9;
   font-size: 0.95rem;
   margin: 0;
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .welcome-stats {
@@ -240,6 +293,7 @@ export default {
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .course-card:hover {
@@ -272,6 +326,8 @@ export default {
   font-weight: 700;
   margin-bottom: 0.5rem;
   color: #1a1a2e;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .course-description {
@@ -282,6 +338,10 @@ export default {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.5;
 }
 
 .course-meta {
@@ -296,29 +356,27 @@ export default {
   font-size: 0.9rem;
 }
 
-.course-progress {
+.course-actions {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   padding-top: 1rem;
 }
 
-.progress-bar {
-  height: 6px;
-  background: #f8f9fa;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
-}
-
-.progress-fill {
-  height: 100%;
+.btn-manage {
+  width: 100%;
+  padding: 0.75rem;
   background: #4F6466;
-  border-radius: 999px;
-  transition: width 0.5s ease;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.progress-text {
-  font-size: 0.8rem;
-  color: #6c757d;
+.btn-manage:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
 }
 
 .loading-container {
@@ -379,15 +437,32 @@ export default {
     padding: 1.5rem;
     border-radius: 12px;
   }
+
+  .welcome-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+  
+  .welcome-content {
+    width: 100%;
+  }
+  
+  .welcome-content h1 {
+    font-size: clamp(1.1rem, 4vw, 1.25rem);
+  }
+
+  .btn-logout {
+    width: 100%;
+    justify-content: center;
+    white-space: nowrap;
+  }
   
   .welcome-stats {
     width: 100%;
     justify-content: space-around;
     flex-wrap: wrap;
-  }
-  
-  .welcome-content h1 {
-    font-size: clamp(1.1rem, 4vw, 1.25rem);
   }
   
   .courses-grid {
@@ -423,13 +498,14 @@ export default {
     font-size: clamp(1.1rem, 4vw, 1.25rem);
   }
   
-  .stat-card {
-    padding: 0.75rem;
-    min-width: 100px;
-  }
-  
   .course-card {
     padding: 1rem;
   }
+  
+  .btn-logout {
+    font-size: 0.85rem;
+    padding: 0.65rem 1rem;
+  }
 }
 </style>
+

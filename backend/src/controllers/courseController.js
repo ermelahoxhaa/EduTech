@@ -10,6 +10,19 @@ export const getCourses = async (req, res) => {
   }
 };
 
+export const getCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await DataAccessLayer.getCourse(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+    res.json(course);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 export const getPublicCourses = async (req, res) => {
   try {
@@ -32,6 +45,16 @@ export const getStudentEnrolledCourses = async (req, res) => {
   try {
     const studentId = req.user.id;
     const courses = await DataAccessLayer.getStudentCourses(studentId);
+    res.json(courses || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getTeacherCourses = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const courses = await DataAccessLayer.getTeacherCourses(teacherId);
     res.json(courses || []);
   } catch (err) {
     res.status(500).json({ error: err.message });

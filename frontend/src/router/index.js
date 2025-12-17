@@ -11,6 +11,8 @@ import CourseTable from '@/components/CourseTable.vue'
 import LoginForm from '@/components/LoginForm.vue'
 import SignupForm from '@/components/SignupForm.vue'
 import ManageUsers from '@/views/ManageUsers.vue'
+import TeacherCourses from '@/views/TeacherCourses.vue'
+import TeacherCourseDetail from '@/views/TeacherCourseDetail.vue'
 
 const routes = [
   { path: '/', component: HomeLanding },
@@ -20,7 +22,17 @@ const routes = [
   { 
     path: '/dashboard', 
     component: AdminDashboard,
-    meta: { requiresAuth: true, roles: ['admin', 'teacher'] }
+    meta: { requiresAuth: true, roles: ['admin'] }
+  },
+  {
+    path: '/my-teaching-courses',
+    component: TeacherCourses,
+    meta: { requiresAuth: true, roles: ['teacher'] }
+  },
+  {
+    path: '/teacher/course/:id',
+    component: TeacherCourseDetail,
+    meta: { requiresAuth: true, roles: ['teacher'] }
   },
   { 
     path: '/my-courses', 

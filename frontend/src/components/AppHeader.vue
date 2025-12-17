@@ -230,14 +230,19 @@ export default {
 }
 
 @media (max-width: 480px) {
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  
   .brand-logo {
-    width: 55px;
-    height: 55px;
+    width: 50px;
+    height: 50px;
+    transition: width 0.3s ease, height 0.3s ease;
   }
   
   .nav-link {
     padding: 0.65rem 0.75rem;
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
   }
   
   .user-section {
@@ -246,7 +251,13 @@ export default {
     gap: 0.5rem;
   }
   
+  .user-name {
+    font-size: 0.85rem;
+  }
+  
   .logout-btn {
+    font-size: 0.8rem;
+    padding: 0.45rem 0.85rem;
     width: 100%;
   }
 }
