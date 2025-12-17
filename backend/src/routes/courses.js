@@ -4,6 +4,10 @@ import { authenticate, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
+router.get('/public', courseController.getPublicCourses);
+
+router.get('/student/enrolled', authenticate, courseController.getStudentEnrolledCourses);
+
 router.get('/', authenticate, courseController.getCourses);
 router.post('/', authenticate, authorize(['admin', 'teacher']), courseController.createCourse);
 router.put('/:id', authenticate, authorize(['admin', 'teacher']), courseController.updateCourse);

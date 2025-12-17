@@ -4,15 +4,20 @@ export function setupRouterGuards(router) {
   router.beforeEach((to, from, next) => {
     const { isAuthenticated, user, hasRole } = useAuth()
     
-    const publicRoutes = ['/', '/login', '/signup']
-    const isPublicRoute = publicRoutes.includes(to.path)
+    const guestOnlyRoutes = ['/', '/features', '/login', '/signup']
+    const isGuestOnlyRoute = guestOnlyRoutes.includes(to.path)
 
-    if (!isAuthenticated.value && !isPublicRoute) {
-      return next({ path: '/login', query: { redirect: to.fullPath } })
+    if (isAuthenticated.value && isGuestOnlyRoute) {
+      const userRole = user.value?.role
+      if (userRole === 'student') {
+        return next('/my-courses')
+      } else if (userRole === 'admin' || userRole === 'teacher') {
+        return next('/dashboard')
+      }
     }
 
-    if (isAuthenticated.value && (to.path === '/login' || to.path === '/signup')) {
-      return next('/dashboard')
+    if (!isAuthenticated.value && !isGuestOnlyRoute) {
+      return next({ path: '/login', query: { redirect: to.fullPath } })
     }
 
     if (isAuthenticated.value && to.meta.requiresAuth) {
@@ -23,11 +28,11 @@ export function setupRouterGuards(router) {
         if (userRole === 'admin') {
           return next('/dashboard')
         } else if (userRole === 'teacher') {
-          return next('/course')
-        } else if (userRole === 'student') {
           return next('/dashboard')
+        } else if (userRole === 'student') {
+          return next('/my-courses')
         } else {
-          return next('/')
+          return next('/login')
         }
       }
     }
@@ -35,4 +40,3 @@ export function setupRouterGuards(router) {
     next()
   })
 }
-

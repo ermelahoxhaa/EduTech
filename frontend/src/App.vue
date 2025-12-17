@@ -25,7 +25,10 @@ export default {
   },
    setup() {
     const route = useRoute()
-    const hideLayout = computed(() => route.path === '/dashboard'|| route.path === '/createnotification'|| route.path === '/course')
+    const hideLayout = computed(() => {
+      const dashboardRoutes = ['/dashboard', '/createnotification', '/course', '/manage-users']
+      return dashboardRoutes.includes(route.path)
+    })
     return { hideLayout }
   }
 }

@@ -1,180 +1,165 @@
 <template>
-  <div class="container-fluid min-vh-100">
-    <div class="row flex-nowrap">
-      <nav
-        class="col-auto col-md-3 col-xl-2 px-3 bg-custom sidebar text-white d-flex flex-column"
-        style="min-height: 100vh;"
-      >
-        <h5 class="text-center my-4"><i>EduTech Admin</i></h5>
-        <ul class="nav nav-pills flex-column mb-auto">
-          <li class="nav-item mb-2">
-            <router-link to="/dashboard" class="nav-link text-white" active-class="active">
-              <i class="fas fa-home me-2"></i>Dashboard
-            </router-link>
-          </li>
-          <li class="nav-item mb-2">
-            <router-link to="/manage-users" class="nav-link text-white" active-class="active">
-              <i class="fas fa-users me-2"></i>Manage Users
-            </router-link>
-          </li>
-          <li class="nav-item mb-2">
-            <router-link to="/course" class="nav-link text-white" active-class="active">
-              <i class="fas fa-book me-2"></i>Manage Courses
-            </router-link>
-          </li>
-          <li class="nav-item mb-2">
-            <router-link to="/createnotification" class="nav-link text-white" active-class="active">
-              <i class="fas fa-bell me-2"></i>Manage Notifications
-            </router-link>
-          </li>
-          <li class="nav-item mt-auto">
-            <a class="nav-link text-white" href="#" @click.prevent="handleLogout">
-              <i class="fas fa-sign-out-alt me-2"></i>Logout
-            </a>
-          </li>
-        </ul>
-      </nav>
+  <div class="dashboard-wrapper" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h5 v-if="!isSidebarCollapsed"><i>EduTech Admin</i></h5>
+        <h5 v-else><i>ET</i></h5>
+      </div>
+      <button class="sidebar-toggle" @click="toggleSidebar">
+        <i :class="isSidebarCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
+      </button>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <router-link to="/dashboard" class="nav-link" active-class="active">
+            <i class="fas fa-home"></i>
+            <span class="nav-text">Dashboard</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/manage-users" class="nav-link" active-class="active">
+            <i class="fas fa-users"></i>
+            <span class="nav-text">Manage Users</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/course" class="nav-link" active-class="active">
+            <i class="fas fa-book"></i>
+            <span class="nav-text">Manage Courses</span>
+          </router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/createnotification" class="nav-link" active-class="active">
+            <i class="fas fa-bell"></i>
+            <span class="nav-text">Notifications</span>
+          </router-link>
+        </li>
+        <li class="nav-item logout-item">
+          <a class="nav-link" href="#" @click.prevent="handleLogout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="nav-text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
 
-      <main class="col py-4 bg-light" style="overflow-x:auto;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="mb-0">Manage Users</h2>
-          <button 
-            @click="showAddUser = true" 
-            class="btn text-white"
-            style="background-color: #4F6466;"
-          >
-            <i class="fas fa-plus me-2"></i>Add New User
-          </button>
+    <main class="main-content">
+      <div class="content-header">
+        <h2>Manage Users</h2>
+        <button @click="showAddUser = true" class="btn-primary-custom">
+          <i class="fas fa-plus"></i>
+          <span>Add New User</span>
+        </button>
+      </div>
+
+      <div v-if="showAddUser || editingUser" class="form-card">
+        <div class="form-card-header">
+          <h5>{{ editingUser ? 'Edit User' : 'Add New User' }}</h5>
         </div>
-
-        <div v-if="showAddUser || editingUser" class="card shadow-sm mb-4">
-          <div class="card-header" style="background-color: #4F6466; color: white;">
-            <h5 class="mb-0">{{ editingUser ? 'Edit User' : 'Add New User' }}</h5>
-          </div>
-          <div class="card-body">
-            <form @submit.prevent="saveUser">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">Name</label>
-                  <input 
-                    v-model="currentUser.name" 
-                    type="text" 
-                    class="form-control" 
-                    placeholder="Enter full name" 
-                    required 
-                  />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Email</label>
-                  <input 
-                    v-model="currentUser.email" 
-                    type="email" 
-                    class="form-control" 
-                    placeholder="Enter email" 
-                    required 
-                  />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Password</label>
-                  <input 
-                    v-model="currentUser.password" 
-                    type="password" 
-                    class="form-control" 
-                    placeholder="Enter password"
-                    :required="!editingUser"
-                  />
-                  <small class="text-muted" v-if="editingUser">Leave blank to keep current password</small>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Role</label>
-                  <select 
-                    v-model="currentUser.role" 
-                    class="form-select" 
-                    required
-                  >
-                    <option value="" disabled>Select Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="student">Student</option>
-                  </select>
-                </div>
-                <div class="col-12">
-                  <div class="d-flex gap-2">
-                    <button type="submit" class="btn text-white" style="background-color: #4F6466;">
-                      {{ editingUser ? 'Update' : 'Create' }} User
-                    </button>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary" 
-                      @click="closeModal"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+        <div class="form-card-body">
+          <form @submit.prevent="saveUser">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Name</label>
+                <input 
+                  v-model="currentUser.name" 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="Enter full name" 
+                  required 
+                />
               </div>
-            </form>
-          </div>
-        </div>
-
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle">
-                <thead style="background-color: #4F6466; color: white;">
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th class="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="user in users" :key="user.id" class="bg-white">
-                    <td>{{ user.id }}</td>
-                    <td class="fw-semibold">{{ user.name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>
-                      <span class="badge" :class="getRoleBadgeClass(user.role)">
-                        {{ user.role }}
-                      </span>
-                    </td>
-                    <td class="text-nowrap text-end">
-                      <button 
-                        @click="editUser(user)" 
-                        class="btn btn-sm btn-outline-secondary me-1"
-                        title="Edit"
-                      >
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button 
-                        @click="confirmDelete(user.id)" 
-                        class="btn btn-sm btn-outline-danger"
-                        title="Delete"
-                        :disabled="user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                  <tr v-if="users.length === 0">
-                    <td colspan="5" class="text-center text-muted py-4">
-                      No users found
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input 
+                  v-model="currentUser.email" 
+                  type="email" 
+                  class="form-control" 
+                  placeholder="Enter email" 
+                  required 
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input 
+                  v-model="currentUser.password" 
+                  type="password" 
+                  class="form-control" 
+                  placeholder="Enter password"
+                  :required="!editingUser"
+                />
+                <small v-if="editingUser">Leave blank to keep current password</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Role</label>
+                <select v-model="currentUser.role" class="form-select" required>
+                  <option value="" disabled>Select Role</option>
+                  <option value="admin">Admin</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="student">Student</option>
+                </select>
+              </div>
             </div>
-          </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary-custom">
+                {{ editingUser ? 'Update' : 'Create' }} User
+              </button>
+              <button type="button" class="btn-secondary-custom" @click="closeModal">
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in users" :key="user.id">
+                <td data-label="ID">{{ user.id }}</td>
+                <td data-label="Name" class="fw-semibold">{{ user.name }}</td>
+                <td data-label="Email">{{ user.email }}</td>
+                <td data-label="Role">
+                  <span class="badge" :class="getRoleBadgeClass(user.role)">
+                    {{ user.role }}
+                  </span>
+                </td>
+                <td data-label="Actions" class="actions-cell">
+                  <button @click="editUser(user)" class="btn-icon" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    @click="confirmDelete(user.id)" 
+                    class="btn-icon btn-danger"
+                    title="Delete"
+                    :disabled="user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="users.length === 0">
+                <td colspan="5" class="empty-state">No users found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import axios from 'axios'
@@ -185,6 +170,7 @@ const { logout: authLogout, isAdmin } = useAuth()
 const users = ref([])
 const showAddUser = ref(false)
 const editingUser = ref(null)
+const isSidebarCollapsed = ref(false)
 const currentUser = ref({
   id: null,
   name: '',
@@ -195,7 +181,18 @@ const currentUser = ref({
 
 const apiBaseUrl = 'http://localhost:5000/api'
 
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
+
+const checkScreenSize = () => {
+  isSidebarCollapsed.value = window.innerWidth < 992
+}
+
 onMounted(async () => {
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+
   if (!isAdmin.value) {
     alert('You do not have permission to access this page.')
     router.push('/dashboard')
@@ -203,6 +200,10 @@ onMounted(async () => {
   }
   
   await fetchUsers()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
 })
 
 const fetchUsers = async () => {
@@ -301,11 +302,11 @@ const closeModal = () => {
 
 const getRoleBadgeClass = (role) => {
   const classes = {
-    admin: 'bg-danger',
-    teacher: 'bg-primary',
-    student: 'bg-success'
+    admin: 'badge-admin',
+    teacher: 'badge-teacher',
+    student: 'badge-student'
   }
-  return classes[role] || 'bg-secondary'
+  return classes[role] || 'badge-default'
 }
 
 const handleLogout = async () => {
@@ -314,51 +315,482 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-.bg-custom {
-  background-color: #4F6466;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+.dashboard-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
 }
 
 .sidebar {
-  min-height: 100vh;
+  width: 250px;
+  min-width: 250px;
+  background-color: #4F6466;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar-collapsed .sidebar {
+  width: 70px;
+  min-width: 70px;
+}
+
+.sidebar-header {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-header h5 {
+  margin: 0;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  right: -12px;
+  top: 50px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #4F6466;
+  border: 2px solid white;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  z-index: 1001;
   transition: all 0.3s ease;
 }
 
-.sidebar .nav-link {
-  color: #fff;
-  padding: 0.75rem 1rem;
+.sidebar-toggle:hover {
+  background: #3a4a4b;
+}
+
+.nav-menu {
+  list-style: none;
+  padding: 1rem 0;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item {
   margin: 0.25rem 0.5rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: white;
+  text-decoration: none;
   border-radius: 0.25rem;
   transition: all 0.3s ease;
-  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
-.sidebar .nav-link:hover {
+.sidebar-collapsed .nav-link {
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+.sidebar-collapsed .nav-text {
+  display: none;
+}
+
+.nav-link:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 
-.sidebar .nav-link.active {
+.nav-link.active {
   background-color: #3a4a4b;
-  color: #fff;
   font-weight: 500;
 }
 
-.table th {
+.nav-link i {
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.logout-item {
+  margin-top: auto;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 0.5rem;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 250px;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar-collapsed .main-content {
+  margin-left: 70px;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.content-header h2 {
+  color: #4F6466;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-primary-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-custom:hover {
+  background-color: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.btn-secondary-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: transparent;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary-custom:hover {
+  background-color: #f8f9fa;
+}
+
+.form-card {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.form-card-header {
+  background-color: #4F6466;
+  color: white;
+  padding: 1rem 1.5rem;
+}
+
+.form-card-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.form-card-body {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.form-control,
+.form-select {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #4F6466;
+  box-shadow: 0 0 0 0.25rem rgba(79, 100, 102, 0.25);
+}
+
+.form-group small {
+  color: #6c757d;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.table-card {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background-color: #4F6466;
+  color: white;
+}
+
+.data-table th {
+  padding: 1rem;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
+  text-align: left;
+}
+
+.data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.fw-semibold {
+  font-weight: 600;
+}
+
+.text-end {
+  text-align: right;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  color: #4F6466;
+}
+
+.btn-icon.btn-danger {
+  color: #dc3545;
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .badge {
+  display: inline-block;
   padding: 0.35em 0.65em;
+  font-size: 0.75rem;
   font-weight: 500;
+  border-radius: 0.25rem;
+  text-transform: capitalize;
 }
 
-.form-control:focus, .form-select:focus {
-  border-color: #4F6466;
-  box-shadow: 0 0 0 0.25rem rgba(79, 100, 102, 0.25);
+.badge-admin {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-teacher {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.badge-student {
+  background-color: #198754;
+  color: white;
+}
+
+.badge-default {
+  background-color: #6c757d;
+  color: white;
+}
+
+.empty-state {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem !important;
+}
+
+@media (max-width: 992px) {
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .content-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .btn-primary-custom {
+    justify-content: center;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .data-table td {
+    text-align: right;
+    padding: 0.75rem 1rem;
+    padding-left: 40%;
+    position: relative;
+    border-bottom: 1px solid #eee;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 1rem;
+    width: 40%;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: #6c757d;
+  }
+
+  .data-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .actions-cell {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-collapsed .sidebar {
+    width: 60px;
+    min-width: 60px;
+  }
+
+  .sidebar-collapsed .main-content {
+    margin-left: 60px;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .form-card-body {
+    padding: 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary-custom,
+  .btn-secondary-custom {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
-

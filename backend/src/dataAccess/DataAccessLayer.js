@@ -11,7 +11,6 @@ class DataAccessLayer {
     this.assignmentStore = AssignmentStore;
   }
 
-  // User operations
   async getUser(id) {
     return await this.userStore.getUserById(id);
   }
@@ -40,7 +39,6 @@ class DataAccessLayer {
     return await this.userStore.deleteUser(id);
   }
 
-  // Course operations
   async getCourses() {
     return await this.courseStore.getAllCourses();
   }
@@ -73,7 +71,10 @@ class DataAccessLayer {
     return await this.courseStore.unenrollStudent(courseId, studentId);
   }
 
-  // Notification operations
+  async getStudentCourses(studentId) {
+    return await this.courseStore.getStudentCourses(studentId);
+  }
+
   async getNotifications() {
     return await this.notificationStore.getAllNotifications();
   }
@@ -94,7 +95,6 @@ class DataAccessLayer {
     return await this.notificationStore.deleteNotification(id);
   }
 
-  // Assignment operations
   async getAssignments() {
     return await this.assignmentStore.getAllAssignments();
   }

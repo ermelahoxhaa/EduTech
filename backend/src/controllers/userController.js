@@ -1,6 +1,7 @@
 import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 import bcrypt from 'bcryptjs';
 
+
 export const getUsers = async (req, res) => {
   try {
     const users = await DataAccessLayer.getAllUsers();
@@ -10,10 +11,25 @@ export const getUsers = async (req, res) => {
   }
 };
 
+
 export const getTeachers = async (req, res) => {
   try {
     const teachers = await DataAccessLayer.getUsersByRole('teacher');
     res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const getPublicTeachers = async (req, res) => {
+  try {
+    const teachers = await DataAccessLayer.getUsersByRole('teacher');
+    const publicTeachers = teachers.map(teacher => ({
+      id: teacher.id,
+      name: teacher.name
+    }));
+    res.json(publicTeachers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

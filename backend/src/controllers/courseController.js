@@ -1,9 +1,38 @@
 import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
 
+
 export const getCourses = async (req, res) => {
   try {
     const courses = await DataAccessLayer.getCourses();
     res.json(courses);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const getPublicCourses = async (req, res) => {
+  try {
+    const courses = await DataAccessLayer.getCourses();
+    const publicCourses = courses.map(course => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      teacher_id: course.teacher_id,
+      student_count: course.student_count || 0
+    }));
+    res.json(publicCourses);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const getStudentEnrolledCourses = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const courses = await DataAccessLayer.getStudentCourses(studentId);
+    res.json(courses || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

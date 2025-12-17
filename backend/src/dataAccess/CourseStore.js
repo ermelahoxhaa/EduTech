@@ -56,7 +56,7 @@ class CourseStore {
     );
     
     if (existing.length > 0) {
-      return false; // Already enrolled
+      return false; 
     }
 
     await db.query(
@@ -72,6 +72,19 @@ class CourseStore {
       [courseId, studentId]
     );
     return result.affectedRows > 0;
+  }
+
+  
+  async getStudentCourses(studentId) {
+    const [rows] = await db.query(
+      `SELECT c.*, u.name AS teacher_name
+       FROM courses c
+       JOIN course_enrollments ce ON c.id = ce.course_id
+       LEFT JOIN users u ON c.teacher_id = u.id
+       WHERE ce.student_id = ?`,
+      [studentId]
+    );
+    return rows;
   }
 }
 

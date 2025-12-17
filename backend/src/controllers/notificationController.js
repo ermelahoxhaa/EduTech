@@ -10,6 +10,20 @@ export const getNotifications = async (req, res) => {
   }
 };
 
+
+export const getStudentNotifications = async (req, res) => {
+  try {
+    const notifications = await DataAccessLayer.getNotifications();
+    const studentNotifications = notifications.filter(
+      n => n.audience === 'all' || n.audience === 'students'
+    );
+    res.json(studentNotifications);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
 export const getNotificationById = async (req, res) => {
   try {
     const notification = await DataAccessLayer.getNotification(req.params.id);
