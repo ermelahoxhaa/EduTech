@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { promisePool } from '../db.js';
 
 class CourseStore {
   async getAllCourses() {
@@ -34,8 +34,36 @@ class CourseStore {
   }
 
   async deleteCourse(id) {
-    const [result] = await db.query('DELETE FROM courses WHERE id = ?', [id]);
-    return result.affectedRows > 0;
+    const connection = await promisePool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      await connection.execute('DELETE FROM course_enrollments WHERE course_id = ?', [id]);
+      
+      try {
+        await connection.execute('DELETE FROM assignments WHERE course_id = ?', [id]);
+      } catch (err) {
+        if (err.code !== 'ER_NO_SUCH_TABLE') {
+          throw err;
+        }
+      }
+      
+      const [result] = await connection.execute('DELETE FROM courses WHERE id = ?', [id]);
+      
+      if (result.affectedRows > 0) {
+        await connection.commit();
+        connection.release();
+        return true;
+      } else {
+        await connection.rollback();
+        connection.release();
+        return false;
+      }
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
   }
 
   async getCourseEnrollments(courseId) {

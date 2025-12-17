@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { promisePool } from '../db.js';
 
 class UserStore {
   async getAllUsers() {
@@ -58,8 +58,41 @@ class UserStore {
   }
 
   async deleteUser(id) {
-    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
-    return result.affectedRows > 0;
+    const connection = await promisePool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      const [userRows] = await connection.execute('SELECT role FROM users WHERE id = ?', [id]);
+      if (userRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return false;
+      }
+      
+      const user = userRows[0];
+      
+      if (user.role === 'teacher') {
+        await connection.execute('UPDATE courses SET teacher_id = NULL WHERE teacher_id = ?', [id]);
+      }
+      
+      await connection.execute('DELETE FROM course_enrollments WHERE student_id = ?', [id]);
+      
+      const [result] = await connection.execute('DELETE FROM users WHERE id = ?', [id]);
+      
+      if (result.affectedRows > 0) {
+        await connection.commit();
+        connection.release();
+        return true;
+      } else {
+        await connection.rollback();
+        connection.release();
+        return false;
+      }
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
   }
 }
 
