@@ -1,9 +1,15 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
+import EduCoreService from '../services/education/EduCoreService.js';
 
 export const createAssignment = async (req, res) => {
   try {
-    const assignmentId = await DataAccessLayer.createAssignment(req.body);
-    const assignment = await DataAccessLayer.getAssignment(assignmentId);
+    const { course_id, title, due_date, max_score } = req.body;
+    const assignmentId = await EduCoreService.assignHomework(
+      course_id,
+      title,
+      due_date,
+      max_score
+    );
+    const assignment = await EduCoreService.getAssignment(assignmentId);
     res.status(201).json({
       success: true,
       data: assignment
@@ -20,7 +26,7 @@ export const createAssignment = async (req, res) => {
 export const getAssignmentsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const assignments = await DataAccessLayer.getAssignmentsByCourseId(courseId);
+    const assignments = await EduCoreService.getAssignmentsByCourseId(courseId);
     res.json({
       success: true,
       data: assignments
@@ -37,7 +43,7 @@ export const getAssignmentsByCourse = async (req, res) => {
 export const updateAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const updated = await DataAccessLayer.updateAssignment(id, req.body);
+    const updated = await EduCoreService.updateAssignment(id, req.body);
     
     if (!updated) {
       return res.status(404).json({
@@ -46,7 +52,7 @@ export const updateAssignment = async (req, res) => {
       });
     }
 
-    const assignment = await DataAccessLayer.getAssignment(id);
+    const assignment = await EduCoreService.getAssignment(id);
     res.json({
       success: true,
       data: assignment
@@ -63,7 +69,7 @@ export const updateAssignment = async (req, res) => {
 export const deleteAssignment = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await DataAccessLayer.deleteAssignment(id);
+    const deleted = await EduCoreService.deleteAssignment(id);
     
     if (!deleted) {
       return res.status(404).json({

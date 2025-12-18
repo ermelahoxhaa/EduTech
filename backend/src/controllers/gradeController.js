@@ -1,9 +1,9 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
+import EduCoreService from '../services/education/EduCoreService.js';
 
 export const getStudentGradesForCourse = async (req, res) => {
   try {
     const { studentId, courseId } = req.params;
-    const grades = await DataAccessLayer.getGradesByStudentAndCourse(studentId, courseId);
+    const grades = await EduCoreService.getGradesByStudentAndCourse(studentId, courseId);
     res.json({
       success: true,
       data: grades
@@ -19,7 +19,7 @@ export const getStudentGradesForCourse = async (req, res) => {
 
 export const createOrUpdateGrade = async (req, res) => {
   try {
-    const { assignment_id, student_id, score, feedback } = req.body;
+    const { submission_id, assignment_id, student_id, score, feedback } = req.body;
 
     if (!assignment_id || !student_id) {
       return res.status(400).json({
@@ -28,20 +28,31 @@ export const createOrUpdateGrade = async (req, res) => {
       });
     }
 
-    const gradeData = {
-      assignment_id,
-      student_id,
-      score: score !== null && score !== undefined ? parseInt(score) : null,
-      feedback: feedback || null
-    };
-
-    const gradeId = await DataAccessLayer.createGrade(gradeData);
-    const grade = await DataAccessLayer.getGrade(gradeId);
-    
-    res.status(201).json({
-      success: true,
-      data: grade
-    });
+    if (submission_id) {
+      const gradeId = await EduCoreService.gradeSubmission(
+        submission_id,
+        score !== null && score !== undefined ? parseInt(score) : 0,
+        feedback || null
+      );
+      const grade = await EduCoreService.getGrade(gradeId);
+      res.status(201).json({
+        success: true,
+        data: grade
+      });
+    } else {
+      const gradeData = {
+        assignment_id,
+        student_id,
+        score: score !== null && score !== undefined ? parseInt(score) : null,
+        feedback: feedback || null
+      };
+      const gradeId = await EduCoreService.createGrade(gradeData);
+      const grade = await EduCoreService.getGrade(gradeId);
+      res.status(201).json({
+        success: true,
+        data: grade
+      });
+    }
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -54,7 +65,7 @@ export const createOrUpdateGrade = async (req, res) => {
 export const getGradesByAssignment = async (req, res) => {
   try {
     const { assignmentId } = req.params;
-    const grades = await DataAccessLayer.getGradesByAssignment(assignmentId);
+    const grades = await EduCoreService.getGradesByAssignment(assignmentId);
     res.json({
       success: true,
       data: grades
@@ -71,7 +82,7 @@ export const getGradesByAssignment = async (req, res) => {
 export const deleteStudentGrades = async (req, res) => {
   try {
     const { studentId, courseId } = req.params;
-    const deleted = await DataAccessLayer.deleteGradesByStudentAndCourse(studentId, courseId);
+    const deleted = await EduCoreService.deleteGradesByStudentAndCourse(studentId, courseId);
     if (!deleted) {
       return res.status(404).json({
         success: false,

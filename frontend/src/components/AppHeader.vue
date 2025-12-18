@@ -27,7 +27,6 @@
         </div>
       </template>
 
-     
     </nav>
   </header>
 </template>

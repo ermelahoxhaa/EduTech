@@ -1,48 +1,13 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
-import multer from 'multer';
-import path from 'path';
+import EduCoreService from '../services/education/EduCoreService.js';
+import FileStorageService from '../services/system/FileStorageService.js';
 import fs from 'fs';
 
-const uploadsDir = path.join(process.cwd(), 'uploads', 'materials');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|avi|mov/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only images, PDFs, documents, and videos are allowed.'));
-    }
-  }
-});
-
-export const uploadMaterial = upload.single('file');
+export const uploadMaterial = FileStorageService.getMaterialUpload().single('file');
 
 export const createMaterial = async (req, res) => {
   try {
-    const materialId = await DataAccessLayer.createMaterial(req.body);
-    const material = await DataAccessLayer.getMaterial(materialId);
+    const materialId = await EduCoreService.createMaterial(req.body);
+    const material = await EduCoreService.getMaterial(materialId);
     res.status(201).json({
       success: true,
       data: material
@@ -73,8 +38,8 @@ export const createMaterialWithFile = async (req, res) => {
       course_id: req.body.course_id
     };
 
-    const materialId = await DataAccessLayer.createMaterial(materialData);
-    const material = await DataAccessLayer.getMaterial(materialId);
+    const materialId = await EduCoreService.createMaterial(materialData);
+    const material = await EduCoreService.getMaterial(materialId);
     
     res.status(201).json({
       success: true,
@@ -95,7 +60,7 @@ export const createMaterialWithFile = async (req, res) => {
 export const getMaterialsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const materials = await DataAccessLayer.getMaterialsByCourseId(courseId);
+    const materials = await EduCoreService.getMaterialsByCourseId(courseId);
     res.json({
       success: true,
       data: materials
@@ -112,14 +77,14 @@ export const getMaterialsByCourse = async (req, res) => {
 export const updateMaterial = async (req, res) => {
   try {
     const { id } = req.params;
-    const updated = await DataAccessLayer.updateMaterial(id, req.body);
+    const updated = await EduCoreService.updateMaterial(id, req.body);
     if (!updated) {
       return res.status(404).json({
         success: false,
         message: 'Material not found'
       });
     }
-    const material = await DataAccessLayer.getMaterial(id);
+    const material = await EduCoreService.getMaterial(id);
     res.json({
       success: true,
       data: material
@@ -136,7 +101,7 @@ export const updateMaterial = async (req, res) => {
 export const deleteMaterial = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await DataAccessLayer.deleteMaterial(id);
+    const deleted = await EduCoreService.deleteMaterial(id);
     if (!deleted) {
       return res.status(404).json({
         success: false,

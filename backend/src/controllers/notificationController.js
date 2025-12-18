@@ -1,4 +1,5 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
+import EduCoreService from '../services/education/EduCoreService.js';
+import DataAccessLayer from '../dataAccess/DataAccessLayer.js'; 
 
 export const getNotifications = async (req, res) => {
   try {
@@ -9,7 +10,6 @@ export const getNotifications = async (req, res) => {
     res.status(500).json({ message: "Database error", error: err.message });
   }
 };
-
 
 export const getStudentNotifications = async (req, res) => {
   try {

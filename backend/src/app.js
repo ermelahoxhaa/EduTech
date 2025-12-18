@@ -5,6 +5,9 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
+import EduTechStartupApp from "./startup/EduTechStartupApp.js";
+import LoggingService from "./services/system/LoggingService.js";
+
 import notificationRoutes from "./routes/notifications.js";
 import coursesRoutes from "./routes/courses.js";
 import usersRoutes from "./routes/users.js";
@@ -31,7 +34,6 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"]
 }));
 
-
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
@@ -46,11 +48,22 @@ app.use("/api/materials", materialRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/grades", gradesRoutes);
 
+(async () => {
+  try {
+    await EduTechStartupApp.init();
+    LoggingService.logInfo('Application startup completed');
+  } catch (error) {
+    LoggingService.logError('Application startup failed', { error: error.message });
+    process.exit(1);
+  }
+})();
+
 app.get("/", (req, res) => {
   res.send("Backend is ready!");
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  LoggingService.logInfo(`Backend is working on port ${PORT}`);
   console.log(`Backend is working on port ${PORT}`);
 });

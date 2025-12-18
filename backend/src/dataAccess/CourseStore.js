@@ -110,7 +110,6 @@ class CourseStore {
     return result.affectedRows > 0;
   }
 
-  
   async getStudentCourses(studentId) {
     const [rows] = await db.query(
       `SELECT c.*, u.name AS teacher_name

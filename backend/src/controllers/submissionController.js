@@ -1,43 +1,8 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
-import multer from 'multer';
-import path from 'path';
+import EduCoreService from '../services/education/EduCoreService.js';
+import FileStorageService from '../services/system/FileStorageService.js';
 import fs from 'fs';
 
-const uploadsDir = path.join(process.cwd(), 'uploads', 'submissions');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|zip|rar|mp4|avi|mov/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only documents, images, videos, and archives are allowed.'));
-    }
-  }
-});
-
-export const uploadSubmission = upload.single('file');
+export const uploadSubmission = FileStorageService.getSubmissionUpload().single('file');
 
 export const createSubmission = async (req, res) => {
   try {
@@ -51,14 +16,8 @@ export const createSubmission = async (req, res) => {
       });
     }
 
-    const submissionData = {
-      assignment_id,
-      student_id,
-      submission_url: submission_url || null
-    };
-
-    const submissionId = await DataAccessLayer.createSubmission(submissionData);
-    const submission = await DataAccessLayer.getSubmissionByAssignmentAndStudent(assignment_id, student_id);
+    const submissionId = await EduCoreService.submitAssignment(assignment_id, student_id, submission_url);
+    const submission = await EduCoreService.getSubmissionByAssignmentAndStudent(assignment_id, student_id);
     
     res.status(201).json({
       success: true,
@@ -96,14 +55,8 @@ export const createSubmissionWithFile = async (req, res) => {
     }
 
     const fileUrl = `/uploads/submissions/${req.file.filename}`;
-    const submissionData = {
-      assignment_id,
-      student_id,
-      submission_url: fileUrl
-    };
-
-    const submissionId = await DataAccessLayer.createSubmission(submissionData);
-    const submission = await DataAccessLayer.getSubmissionByAssignmentAndStudent(assignment_id, student_id);
+    const submissionId = await EduCoreService.submitAssignment(assignment_id, student_id, fileUrl);
+    const submission = await EduCoreService.getSubmissionByAssignmentAndStudent(assignment_id, student_id);
     
     res.status(201).json({
       success: true,
@@ -126,7 +79,7 @@ export const getSubmissionByAssignment = async (req, res) => {
     const { assignmentId } = req.params;
     const studentId = req.user.id;
     
-    const submission = await DataAccessLayer.getSubmissionByAssignmentAndStudent(assignmentId, studentId);
+    const submission = await EduCoreService.getSubmissionByAssignmentAndStudent(assignmentId, studentId);
     
     res.json({
       success: true,
@@ -144,7 +97,7 @@ export const getSubmissionByAssignment = async (req, res) => {
 export const getSubmissionsByAssignment = async (req, res) => {
   try {
     const { assignmentId } = req.params;
-    const submissions = await DataAccessLayer.getSubmissionsByAssignment(assignmentId);
+    const submissions = await EduCoreService.getSubmissionsByAssignment(assignmentId);
     
     res.json({
       success: true,
@@ -164,7 +117,7 @@ export const updateSubmission = async (req, res) => {
     const { id } = req.params;
     const { submission_url } = req.body;
     
-    const updated = await DataAccessLayer.updateSubmission(id, { submission_url });
+    const updated = await EduCoreService.updateSubmission(id, { submission_url });
     
     if (!updated) {
       return res.status(404).json({
@@ -173,7 +126,7 @@ export const updateSubmission = async (req, res) => {
       });
     }
     
-    const submission = await DataAccessLayer.getSubmission(id);
+    const submission = await EduCoreService.getSubmission(id);
     res.json({
       success: true,
       data: submission
@@ -190,7 +143,7 @@ export const updateSubmission = async (req, res) => {
 export const deleteSubmission = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await DataAccessLayer.deleteSubmission(id);
+    const deleted = await EduCoreService.deleteSubmission(id);
     
     if (!deleted) {
       return res.status(404).json({

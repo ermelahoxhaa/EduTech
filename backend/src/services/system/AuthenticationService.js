@@ -55,13 +55,12 @@ class AuthenticationService {
       throw new Error('Email already exists.');
     }
 
-    // Signup is only for students - enforce this
     const hashedPassword = await bcrypt.hash(password, 10);
     await DataAccessLayer.createUser({
       name,
       email,
       password: hashedPassword,
-      role: 'student' // Always student for signup
+      role: 'student' 
     });
 
     return { message: 'Student account created successfully. You can now login.' };

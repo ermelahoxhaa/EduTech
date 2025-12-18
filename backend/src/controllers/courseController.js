@@ -1,9 +1,8 @@
-import DataAccessLayer from '../dataAccess/DataAccessLayer.js';
-
+import EduCoreService from '../services/education/EduCoreService.js';
 
 export const getCourses = async (req, res) => {
   try {
-    const courses = await DataAccessLayer.getCourses();
+    const courses = await EduCoreService.getCourses();
     res.json(courses);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -13,7 +12,7 @@ export const getCourses = async (req, res) => {
 export const getCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const course = await DataAccessLayer.getCourse(id);
+    const course = await EduCoreService.getCourse(id);
     if (!course) {
       return res.status(404).json({ error: 'Course not found' });
     }
@@ -23,10 +22,9 @@ export const getCourse = async (req, res) => {
   }
 };
 
-
 export const getPublicCourses = async (req, res) => {
   try {
-    const courses = await DataAccessLayer.getCourses();
+    const courses = await EduCoreService.getCourses();
     const publicCourses = courses.map(course => ({
       id: course.id,
       title: course.title,
@@ -40,11 +38,10 @@ export const getPublicCourses = async (req, res) => {
   }
 };
 
-
 export const getStudentEnrolledCourses = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const courses = await DataAccessLayer.getStudentCourses(studentId);
+    const courses = await EduCoreService.getStudentCourses(studentId);
     res.json(courses || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -54,7 +51,7 @@ export const getStudentEnrolledCourses = async (req, res) => {
 export const getTeacherCourses = async (req, res) => {
   try {
     const teacherId = req.user.id;
-    const courses = await DataAccessLayer.getTeacherCourses(teacherId);
+    const courses = await EduCoreService.getTeacherCourses(teacherId);
     res.json(courses || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -69,8 +66,8 @@ export const createCourse = async (req, res) => {
       return res.status(400).json({ error: "Title and teacher ID are required" });
     }
 
-    const courseId = await DataAccessLayer.createCourse({ title, description, teacher_id });
-    const newCourse = await DataAccessLayer.getCourse(courseId);
+    const courseId = await EduCoreService.createCourse({ title, description, teacher_id });
+    const newCourse = await EduCoreService.getCourse(courseId);
     res.status(201).json(newCourse);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -82,13 +79,13 @@ export const updateCourse = async (req, res) => {
     const { id } = req.params;
     const { title, description, teacher_id } = req.body;
 
-    const updated = await DataAccessLayer.updateCourse(id, { title, description, teacher_id });
+    const updated = await EduCoreService.updateCourse(id, { title, description, teacher_id });
 
     if (!updated) {
       return res.status(404).json({ error: "Course not found" });
     }
 
-    const updatedCourse = await DataAccessLayer.getCourse(id);
+    const updatedCourse = await EduCoreService.getCourse(id);
     res.json(updatedCourse);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,7 +95,7 @@ export const updateCourse = async (req, res) => {
 export const deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await DataAccessLayer.deleteCourse(id);
+    const deleted = await EduCoreService.deleteCourse(id);
 
     if (!deleted) {
       return res.status(404).json({ error: "Course not found" });
@@ -113,7 +110,7 @@ export const deleteCourse = async (req, res) => {
 export const getCourseEnrollments = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const enrollments = await DataAccessLayer.getCourseEnrollments(courseId);
+    const enrollments = await EduCoreService.getCourseEnrollments(courseId);
     res.json(enrollments);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -125,14 +122,12 @@ export const enrollStudent = async (req, res) => {
     const { courseId } = req.params;
     const { studentId } = req.body;
 
-    const enrolled = await DataAccessLayer.enrollStudent(courseId, studentId);
-
-    if (!enrolled) {
-      return res.status(400).json({ error: "Student already enrolled" });
-    }
-
+    await EduCoreService.enrollStudent(studentId, courseId);
     res.status(201).json({ message: "Student enrolled successfully" });
   } catch (err) {
+    if (err.message.includes('already enrolled')) {
+      return res.status(400).json({ error: err.message });
+    }
     res.status(500).json({ error: err.message });
   }
 };
@@ -140,7 +135,7 @@ export const enrollStudent = async (req, res) => {
 export const unenrollStudent = async (req, res) => {
   try {
     const { courseId, studentId } = req.params;
-    const unenrolled = await DataAccessLayer.unenrollStudent(courseId, studentId);
+    const unenrolled = await EduCoreService.unenrollStudent(courseId, studentId);
 
     if (!unenrolled) {
       return res.status(404).json({ error: "Enrollment not found" });
@@ -165,7 +160,7 @@ export const updateFinalGrade = async (req, res) => {
       return res.status(400).json({ error: "Final grade must be between 1 and 5" });
     }
 
-    const updated = await DataAccessLayer.updateFinalGrade(courseId, student_id, final_grade);
+    const updated = await EduCoreService.updateFinalGrade(courseId, student_id, final_grade);
 
     if (!updated) {
       return res.status(404).json({ error: "Enrollment not found" });

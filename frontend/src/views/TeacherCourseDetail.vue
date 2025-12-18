@@ -241,7 +241,7 @@
                           <input 
                             type="number" 
                             :value="getGrade(student.id, assignment.id)"
-                            @change="updateGrade(student.id, assignment.id, $event && $event.target ? $event.target.value : '')"
+                            @change="updateGrade(student.id, assignment.id, $event.target.value)"
                             class="grade-input"
                             min="0"
                             :max="assignment && assignment.max_score ? assignment.max_score : 100"
@@ -255,7 +255,7 @@
                           <input 
                             type="number" 
                             :value="getFinalGrade(student.id)"
-                            @change="updateFinalGrade(student.id, $event && $event.target ? $event.target.value : '')"
+                            @change="updateFinalGrade(student.id, $event.target.value)"
                             class="final-grade-input"
                             min="1"
                             max="5"
@@ -282,7 +282,6 @@
         </div>
       </div>
     </main>
-
 
     <div v-if="showAssignmentModal" class="assignment-modal-overlay" @click.self="closeAssignmentModal">
       <div class="assignment-modal" @click.stop>
@@ -508,7 +507,7 @@
       </div>
     </div>
 
-    <div v-if="showSubmissionsModal" class="submission-modal-overlay" @click.self="closeSubmissionsModal">
+  <div v-if="showSubmissionsModal" class="submission-modal-overlay" @click.self="closeSubmissionsModal">
       <div class="submission-modal" @click.stop>
         <div class="submission-modal-header">
           <h3>Submissions: {{ viewingAssignment ? viewingAssignment.title : 'Assignment' }}</h3>
@@ -1944,7 +1943,6 @@ export default {
 .empty-state p {
   color: #6c757d;
 }
-
 
 .modal-header {
   display: flex;
