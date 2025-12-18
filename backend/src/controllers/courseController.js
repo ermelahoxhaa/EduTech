@@ -151,3 +151,28 @@ export const unenrollStudent = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const updateFinalGrade = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    const { student_id, final_grade } = req.body;
+
+    if (!student_id) {
+      return res.status(400).json({ error: "Student ID is required" });
+    }
+
+    if (final_grade !== null && final_grade !== undefined && (final_grade < 1 || final_grade > 5)) {
+      return res.status(400).json({ error: "Final grade must be between 1 and 5" });
+    }
+
+    const updated = await DataAccessLayer.updateFinalGrade(courseId, student_id, final_grade);
+
+    if (!updated) {
+      return res.status(404).json({ error: "Enrollment not found" });
+    }
+
+    res.json({ message: "Final grade updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

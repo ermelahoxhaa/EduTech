@@ -77,6 +77,10 @@ class DataAccessLayer {
     return await this.courseStore.unenrollStudent(courseId, studentId);
   }
 
+  async updateFinalGrade(courseId, studentId, finalGrade) {
+    return await this.courseStore.updateFinalGrade(courseId, studentId, finalGrade);
+  }
+
   async getStudentCourses(studentId) {
     return await this.courseStore.getStudentCourses(studentId);
   }
@@ -203,6 +207,10 @@ class DataAccessLayer {
 
   async deleteGrade(id) {
     return await this.gradeStore.deleteGrade(id);
+  }
+
+  async deleteGradesByStudentAndCourse(studentId, courseId) {
+    return await this.gradeStore.deleteGradesByStudentAndCourse(studentId, courseId);
   }
 }
 

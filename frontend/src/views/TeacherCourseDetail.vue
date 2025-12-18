@@ -237,21 +237,41 @@
                     <tr v-for="student in enrolledStudents" :key="student.id">
                       <td class="student-name">{{ student.name }}</td>
                       <td v-for="assignment in assignments" :key="assignment.id">
-                        <input 
-                          type="number" 
-                          :value="getGrade(student.id, assignment.id)"
-                          @change="updateGrade(student.id, assignment.id, $event && $event.target ? $event.target.value : '')"
-                          class="grade-input"
-                          min="0"
-                          :max="assignment && assignment.max_score ? assignment.max_score : 100"
-                          placeholder="0"
-                        />
+                        <div class="grade-input-wrapper-table">
+                          <input 
+                            type="number" 
+                            :value="getGrade(student.id, assignment.id)"
+                            @change="updateGrade(student.id, assignment.id, $event && $event.target ? $event.target.value : '')"
+                            class="grade-input"
+                            min="0"
+                            :max="assignment && assignment.max_score ? assignment.max_score : 100"
+                            placeholder="0"
+                          />
+                          <span class="max-score-label">/ {{ assignment && assignment.max_score ? assignment.max_score : 100 }}</span>
+                        </div>
                       </td>
-                      <td class="final-grade">{{ calculateFinalGrade(student.id) }}</td>
+                      <td class="final-grade">
+                        <div class="final-grade-input-wrapper">
+                          <input 
+                            type="number" 
+                            :value="getFinalGrade(student.id)"
+                            @change="updateFinalGrade(student.id, $event && $event.target ? $event.target.value : '')"
+                            class="final-grade-input"
+                            min="1"
+                            max="5"
+                            placeholder="-"
+                          />
+                        </div>
+                      </td>
                       <td>
-                        <button @click="viewStudentGrades(student)" class="btn-icon">
-                          <i class="fas fa-eye"></i>
-                        </button>
+                        <div class="action-buttons">
+                          <button @click="editStudentGrades(student)" class="btn-icon" title="Edit Grades">
+                            <i class="fas fa-edit"></i> Edit
+                          </button>
+                          <button @click="deleteStudentGrades(student)" class="btn-icon-danger" title="Delete All Grades">
+                            <i class="fas fa-trash"></i> Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   </tbody>
@@ -572,6 +592,7 @@ export default {
       enrolledStudents: [],
       availableStudents: [],
       grades: {},
+      finalGrades: {},
       loading: true,
       activeTab: 'enrollments',
       showMaterialModal: false,
@@ -654,6 +675,13 @@ export default {
         
         const enrolledIds = new Set(this.enrolledStudents.map(s => s.id));
         this.availableStudents = allStudents.filter(student => !enrolledIds.has(student.id));
+        
+        this.finalGrades = {};
+        this.enrolledStudents.forEach(student => {
+          if (student.final_grade !== null && student.final_grade !== undefined) {
+            this.finalGrades[student.id] = student.final_grade;
+          }
+        });
 
         const gradesPromises = this.assignments.map(assignment =>
           axios.get(`${this.apiBaseUrl}/grades/assignment/${assignment.id}`, { headers, withCredentials: true })
@@ -1127,26 +1155,94 @@ export default {
         : `${this.apiBaseUrl.replace('/api', '')}${submission.submission_url}`;
       window.open(url, '_blank');
     },
-    calculateFinalGrade(studentId) {
-      if (!studentId || !Array.isArray(this.assignments)) return '-';
-      let total = 0;
-      let count = 0;
-      this.assignments.forEach(assignment => {
-        if (!assignment || !assignment.id) return;
-        const grade = this.grades[`${studentId}_${assignment.id}`];
-        if (grade !== undefined && grade !== null && grade !== '') {
-          const numGrade = parseFloat(grade);
-          if (!isNaN(numGrade)) {
-            total += numGrade;
-            count++;
-          }
-        }
-      });
-      return count > 0 ? (total / count).toFixed(1) : '-';
+    getFinalGrade(studentId) {
+      return this.finalGrades[studentId] || '';
     },
-    viewStudentGrades(student) {
-      if (!student || !student.name) return;
-      alert(`Viewing grades for ${student.name}`);
+    async updateFinalGrade(studentId, grade) {
+      if (!studentId) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        const courseId = this.route.params.id;
+        
+        const gradeValue = grade === '' || grade === null || grade === undefined ? null : parseInt(grade);
+        
+        if (gradeValue !== null && (gradeValue < 1 || gradeValue > 5)) {
+          alert('Final grade must be between 1 and 5');
+          return;
+        }
+        
+        await axios.post(
+          `${this.apiBaseUrl}/courses/${courseId}/final-grade`,
+          {
+            student_id: studentId,
+            final_grade: gradeValue
+          },
+          { headers, withCredentials: true }
+        );
+        
+        if (gradeValue === null) {
+          delete this.finalGrades[studentId];
+        } else {
+          this.finalGrades[studentId] = gradeValue;
+        }
+      } catch (error) {
+        console.error('Error saving final grade:', error);
+        alert('Failed to save final grade: ' + (error.response?.data?.error || error.message));
+      }
+    },
+    async editStudentGrades(student) {
+      if (!student || !student.id) return;
+      const courseId = this.route.params.id;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        
+        const gradesRes = await axios.get(
+          `${this.apiBaseUrl}/grades/student/${student.id}/course/${courseId}`,
+          { headers, withCredentials: true }
+        );
+        
+        const studentGrades = gradesRes.data?.data || gradesRes.data || [];
+        const finalGrade = this.finalGrades[student.id] || null;
+        
+        const message = `Student: ${student.name}\n\nAssignment Grades:\n${studentGrades.map(g => `  • ${g.assignment_title || 'Assignment'}: ${g.score || '-'} / ${g.max_score || 100}`).join('\n')}\n\nFinal Grade: ${finalGrade || '-'}`;
+        alert(message);
+      } catch (error) {
+        console.error('Error fetching student grades:', error);
+        alert('Failed to load student grades');
+      }
+    },
+    async deleteStudentGrades(student) {
+      if (!student || !student.id) return;
+      
+      if (!confirm(`Are you sure you want to delete all assignment grades for ${student.name}? This action cannot be undone.`)) {
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        const courseId = this.route.params.id;
+        
+        await axios.delete(
+          `${this.apiBaseUrl}/grades/student/${student.id}/course/${courseId}`,
+          { headers, withCredentials: true }
+        );
+        
+        this.assignments.forEach(assignment => {
+          const key = `${student.id}_${assignment.id}`;
+          delete this.grades[key];
+        });
+        
+        await this.fetchCourseData();
+        alert('All grades deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting grades:', error);
+        alert('Failed to delete grades: ' + (error.response?.data?.error || error.response?.data?.message || error.message));
+      }
     },
     async enrollStudent(studentId) {
       try {
@@ -1577,17 +1673,31 @@ export default {
 }
 
 .btn-icon-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   background: transparent;
-  border: none;
+  border: 1px solid #dc3545;
   color: #dc3545;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background 0.2s;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
 .btn-icon-danger:hover {
   background: #fee2e2;
+  border-color: #dc3545;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .assignments-list {
@@ -1758,8 +1868,15 @@ export default {
   border-bottom: 1px solid #e9ecef;
 }
 
+.grade-input-wrapper-table {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
 .grade-input {
-  width: 80px;
+  width: 70px;
   padding: 0.5rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -1771,14 +1888,41 @@ export default {
   border-color: #4F6466;
 }
 
+.max-score-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
 .student-name {
   font-weight: 600;
   color: #1a1a2e;
 }
 
 .final-grade {
-  font-weight: 700;
-  color: #4F6466;
+  text-align: center;
+}
+
+.final-grade-input-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.final-grade-input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.final-grade-input:focus {
+  outline: none;
+  border-color: #4F6466;
+  box-shadow: 0 0 0 2px rgba(79, 100, 102, 0.2);
 }
 
 .empty-state {

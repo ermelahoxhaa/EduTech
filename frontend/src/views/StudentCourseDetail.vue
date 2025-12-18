@@ -181,7 +181,7 @@
                       <td>{{ assignment.max_score || 100 }}</td>
                       <td>
                         <span v-if="getGradeForAssignment(assignment.id)" class="grade-value">
-                          {{ getGradeForAssignment(assignment.id) }}
+                          {{ getGradeForAssignment(assignment.id) }} / {{ assignment.max_score || 100 }}
                         </span>
                         <span v-else class="grade-pending">-</span>
                       </td>
@@ -194,8 +194,10 @@
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colspan="3" class="final-grade-label"><strong>Average Grade:</strong></td>
-                      <td colspan="2" class="final-grade">{{ calculateAverageGrade() }}</td>
+                      <td colspan="3" class="final-grade-label"><strong>Final Grade (1-5):</strong></td>
+                      <td colspan="2" class="final-grade">
+                        <span class="final-grade-value">{{ calculateFinalGrade() }}</span>
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -332,6 +334,7 @@ export default {
       assignments: [],
       materials: [],
       grades: {},
+      finalGrade: null,
       loading: true,
       activeTab: 'materials',
       showViewMaterialModal: false,
@@ -391,11 +394,12 @@ export default {
           }
         }
 
-        const [courseRes, assignmentsRes, materialsRes, gradesRes] = await Promise.all([
+        const [courseRes, assignmentsRes, materialsRes, gradesRes, enrollmentsRes] = await Promise.all([
           axios.get(`${this.apiBaseUrl}/courses/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: null })),
           axios.get(`${this.apiBaseUrl}/assignments/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
           axios.get(`${this.apiBaseUrl}/materials/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
-          axios.get(`${this.apiBaseUrl}/grades/student/${this.user.id}/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } }))
+          axios.get(`${this.apiBaseUrl}/grades/student/${this.user.id}/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
+          axios.get(`${this.apiBaseUrl}/courses/${courseId}/enrollments`, { headers, withCredentials: true }).catch(() => ({ data: [] }))
         ]);
 
         this.assignments = assignmentsRes.data?.data || assignmentsRes.data || [];
@@ -429,6 +433,10 @@ export default {
             this.grades[grade.assignment_id] = grade.score;
           }
         });
+        
+        const enrollments = enrollmentsRes.data || [];
+        const studentEnrollment = enrollments.find(e => e.id === this.user.id);
+        this.finalGrade = studentEnrollment?.final_grade || null;
       } catch (error) {
         console.error('Error fetching course data:', error);
         alert('Failed to load course data');
@@ -552,22 +560,20 @@ export default {
         'status-pending': status === 'Pending'
       };
     },
-    calculateAverageGrade() {
-      if (!Array.isArray(this.assignments) || this.assignments.length === 0) return '-';
-      let total = 0;
-      let count = 0;
-      this.assignments.forEach(assignment => {
-        if (!assignment || !assignment.id) return;
-        const grade = this.grades[assignment.id];
-        if (grade !== undefined && grade !== null && grade !== '') {
-          const numGrade = parseFloat(grade);
-          if (!isNaN(numGrade)) {
-            total += numGrade;
-            count++;
-          }
-        }
-      });
-      return count > 0 ? (total / count).toFixed(1) : '-';
+    convertPointsToGrade(points, maxScore) {
+      if (!points || !maxScore || maxScore === 0) return null;
+      const percentage = (points / maxScore) * 100;
+      if (percentage >= 90) return 5;
+      if (percentage >= 80) return 4;
+      if (percentage >= 70) return 3;
+      if (percentage >= 60) return 2;
+      return 1;
+    },
+    calculateFinalGrade() {
+      if (this.finalGrade !== null && this.finalGrade !== undefined) {
+        return this.finalGrade;
+      }
+      return '-';
     },
     getSubmissionForAssignment(assignmentId) {
       return this.submissions[assignmentId] || null;
@@ -1139,9 +1145,18 @@ export default {
 }
 
 .final-grade {
+  text-align: center;
+}
+
+.final-grade-value {
+  display: inline-block;
   font-weight: 700;
+  font-size: 1.2rem;
   color: #4F6466;
-  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  background: #f0f4f5;
+  border-radius: 8px;
+  min-width: 40px;
 }
 
 .empty-state {

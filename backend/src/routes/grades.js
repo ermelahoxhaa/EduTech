@@ -8,6 +8,7 @@ router.get('/student/:studentId/course/:courseId', authenticate, authorize(['stu
 router.get('/assignment/:assignmentId', authenticate, authorize(['teacher', 'admin']), gradeController.getGradesByAssignment);
 router.post('/', authenticate, authorize(['teacher', 'admin']), gradeController.createOrUpdateGrade);
 router.put('/:id', authenticate, authorize(['teacher', 'admin']), gradeController.createOrUpdateGrade);
+router.delete('/student/:studentId/course/:courseId', authenticate, authorize(['teacher', 'admin']), gradeController.deleteStudentGrades);
 
 export default router;
 

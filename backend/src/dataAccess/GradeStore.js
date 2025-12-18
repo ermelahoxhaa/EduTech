@@ -64,6 +64,16 @@ class GradeStore {
     const [result] = await db.query('DELETE FROM grades WHERE id = ?', [id]);
     return result.affectedRows > 0;
   }
+
+  async deleteGradesByStudentAndCourse(studentId, courseId) {
+    const [result] = await db.query(
+      `DELETE g FROM grades g
+       JOIN assignments a ON g.assignment_id = a.id
+       WHERE g.student_id = ? AND a.course_id = ?`,
+      [studentId, courseId]
+    );
+    return result.affectedRows > 0;
+  }
 }
 
 export default new GradeStore();

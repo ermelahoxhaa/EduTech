@@ -15,6 +15,7 @@ router.post('/', authenticate, authorize(['admin', 'teacher']), courseController
 router.get('/:courseId/enrollments', authenticate, courseController.getCourseEnrollments);
 router.post('/:courseId/enroll', authenticate, authorize(['admin', 'teacher']), courseController.enrollStudent);
 router.delete('/:courseId/enroll/:studentId', authenticate, authorize(['admin', 'teacher']), courseController.unenrollStudent);
+router.post('/:id/final-grade', authenticate, authorize(['admin', 'teacher']), courseController.updateFinalGrade);
 
 router.get('/:id', authenticate, courseController.getCourse);
 router.put('/:id', authenticate, authorize(['admin', 'teacher']), courseController.updateCourse);

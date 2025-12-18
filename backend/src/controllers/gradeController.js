@@ -68,3 +68,26 @@ export const getGradesByAssignment = async (req, res) => {
   }
 };
 
+export const deleteStudentGrades = async (req, res) => {
+  try {
+    const { studentId, courseId } = req.params;
+    const deleted = await DataAccessLayer.deleteGradesByStudentAndCourse(studentId, courseId);
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'No grades found to delete'
+      });
+    }
+    res.json({
+      success: true,
+      message: 'All grades deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete grades',
+      error: error.message
+    });
+  }
+};
+

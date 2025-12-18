@@ -68,13 +68,21 @@ class CourseStore {
 
   async getCourseEnrollments(courseId) {
     const [rows] = await db.query(
-      `SELECT u.id, u.name, u.email
+      `SELECT u.id, u.name, u.email, COALESCE(ce.final_grade, NULL) AS final_grade
        FROM users u
        JOIN course_enrollments ce ON u.id = ce.student_id
        WHERE ce.course_id = ? AND u.role = 'student'`,
       [courseId]
     );
     return rows;
+  }
+
+  async updateFinalGrade(courseId, studentId, finalGrade) {
+    const [result] = await db.query(
+      'UPDATE course_enrollments SET final_grade = ? WHERE course_id = ? AND student_id = ?',
+      [finalGrade, courseId, studentId]
+    );
+    return result.affectedRows > 0;
   }
 
   async enrollStudent(courseId, studentId) {
