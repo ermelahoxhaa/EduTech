@@ -32,7 +32,7 @@
           </div>
 
           <div v-else class="courses-grid">
-            <article v-for="course in enrolledCourses" :key="course.id" class="course-card">
+            <article v-for="course in enrolledCourses" :key="course.id" class="course-card" @click="viewCourse(course.id)">
               <div class="course-header">
                 <div class="course-icon">{{ getCourseIcon(course.title) }}</div>
                 <span class="course-badge">{{ getCourseCategory(course.title) }}</span>
@@ -145,6 +145,9 @@ export default {
     },
     getRandomProgress() {
       return Math.floor(Math.random() * 60) + 20;
+    },
+    viewCourse(courseId) {
+      this.router.push(`/student/course/${courseId}`);
     }
   }
 };
@@ -240,6 +243,7 @@ export default {
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .course-card:hover {

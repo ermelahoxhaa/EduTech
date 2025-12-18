@@ -13,6 +13,7 @@ import SignupForm from '@/components/SignupForm.vue'
 import ManageUsers from '@/views/ManageUsers.vue'
 import TeacherCourses from '@/views/TeacherCourses.vue'
 import TeacherCourseDetail from '@/views/TeacherCourseDetail.vue'
+import StudentCourseDetail from '@/views/StudentCourseDetail.vue'
 
 const routes = [
   { path: '/', component: HomeLanding },
@@ -37,6 +38,11 @@ const routes = [
   { 
     path: '/my-courses', 
     component: StudentCourses,
+    meta: { requiresAuth: true, roles: ['student'] }
+  },
+  {
+    path: '/student/course/:id',
+    component: StudentCourseDetail,
     meta: { requiresAuth: true, roles: ['student'] }
   },
   { 
