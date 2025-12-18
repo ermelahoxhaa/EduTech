@@ -108,7 +108,7 @@
             <div v-if="activeTab === 'materials'" class="tab-content">
               <div class="section-header">
                 <h2>📚 Course Materials</h2>
-                <button @click="showMaterialModal = true" class="btn-primary">
+                <button @click="openMaterialModal" class="btn-primary">
                   <i class="fas fa-plus"></i> Add Material
                 </button>
               </div>
@@ -125,13 +125,18 @@
                   <div class="material-content">
                     <h3>{{ material.title }}</h3>
                     <p class="material-type">{{ material.type }}</p>
-                    <a v-if="material.url" :href="material.url" target="_blank" class="material-link">
-                      View Material <i class="fas fa-external-link-alt"></i>
-                    </a>
+                    <button @click.stop="viewMaterial(material, $event)" class="material-link-btn">
+                      <i class="fas fa-eye"></i> View Material
+                    </button>
                   </div>
-                  <button @click="deleteMaterial(material.id)" class="btn-icon-danger">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <div class="material-actions">
+                    <button @click="editMaterial(material)" class="btn-icon" title="Edit Material">
+                      <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button @click="deleteMaterial(material.id)" class="btn-icon-danger" title="Delete Material">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -208,10 +213,10 @@
                         <input 
                           type="number" 
                           :value="getGrade(student.id, assignment.id)"
-                          @change="updateGrade(student.id, assignment.id, $event.target.value)"
+                          @change="updateGrade(student.id, assignment.id, $event && $event.target ? $event.target.value : '')"
                           class="grade-input"
                           min="0"
-                          :max="assignment.max_score"
+                          :max="assignment && assignment.max_score ? assignment.max_score : 100"
                           placeholder="0"
                         />
                       </td>
@@ -231,46 +236,12 @@
       </div>
     </main>
 
-    <div v-if="showMaterialModal" class="modal-overlay" @click.self="closeMaterialModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>Add Material</h3>
-          <button @click="closeMaterialModal" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="saveMaterial">
-            <div class="form-group">
-              <label>Title</label>
-              <input v-model="materialForm.title" type="text" required placeholder="Material title" />
-            </div>
-            <div class="form-group">
-              <label>Type</label>
-              <select v-model="materialForm.type" required>
-                <option value="">Select Type</option>
-                <option value="PDF">PDF Document</option>
-                <option value="Link">External Link</option>
-                <option value="Video">Video</option>
-                <option value="Document">Document</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>URL / Link</label>
-              <input v-model="materialForm.url" type="url" required placeholder="https://..." />
-            </div>
-            <div class="form-actions">
-              <button type="button" @click="closeMaterialModal" class="btn-secondary">Cancel</button>
-              <button type="submit" class="btn-primary">Add Material</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
 
     <div v-if="showAssignmentModal" class="modal-overlay" @click.self="closeAssignmentModal">
-      <div class="modal">
+      <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>{{ editingAssignment ? 'Edit' : 'Create' }} Assignment</h3>
-          <button @click="closeAssignmentModal" class="close-btn">&times;</button>
+          <button @click="closeAssignmentModal" class="close-btn" type="button">&times;</button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="saveAssignment">
@@ -297,6 +268,148 @@
               <button type="submit" class="btn-primary">{{ editingAssignment ? 'Update' : 'Create' }} Assignment</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showMaterialModal" class="material-modal-overlay" @click.self="closeMaterialModal">
+    <div class="material-modal" @click.stop>
+      <div class="material-modal-header">
+        <h3>{{ editingMaterial ? 'Edit' : 'Add' }} Material</h3>
+        <button @click="closeMaterialModal" class="material-close-btn" type="button">&times;</button>
+      </div>
+      <div class="material-modal-body">
+        <form @submit.prevent="saveMaterial" enctype="multipart/form-data">
+          <div class="material-form-group">
+            <label>Title</label>
+            <input v-model="materialForm.title" type="text" required placeholder="Material title" />
+          </div>
+          <div class="material-form-group">
+            <label>Type</label>
+            <select v-model="materialForm.type" required>
+              <option value="">Select Type</option>
+              <option value="PDF">PDF Document</option>
+              <option value="Link">External Link</option>
+              <option value="Video">Video</option>
+              <option value="Document">Document</option>
+            </select>
+          </div>
+          <div v-if="!editingMaterial" class="material-form-group">
+            <label>Upload Method</label>
+            <div class="upload-method-options">
+              <label class="radio-option">
+                <input type="radio" v-model="materialForm.uploadMethod" value="url" />
+                <span>Enter URL</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" v-model="materialForm.uploadMethod" value="file" />
+                <span>Upload File</span>
+              </label>
+            </div>
+          </div>
+          <div v-if="materialForm.uploadMethod === 'url'" class="material-form-group">
+            <label>URL / Link</label>
+            <input v-model="materialForm.url" type="url" :required="materialForm.uploadMethod === 'url'" placeholder="https://..." />
+          </div>
+          <div v-if="materialForm.uploadMethod === 'file' && !editingMaterial" class="material-form-group">
+            <label>Select File</label>
+            <div class="file-upload-wrapper">
+              <input 
+                ref="fileInput"
+                type="file" 
+                @change="handleFileSelect"
+                accept=".pdf,.doc,.docx,.txt,.mp4,.avi,.mov,.jpg,.jpeg,.png"
+                class="file-input"
+                :required="!editingMaterial"
+              />
+              <div v-if="materialForm.file" class="file-info">
+                <i class="fas fa-file"></i>
+                <span>{{ materialForm.file.name }}</span>
+                <span class="file-size">({{ formatFileSize(materialForm.file.size) }})</span>
+              </div>
+              <button 
+                v-if="!materialForm.file" 
+                type="button" 
+                @click="openFileBrowser" 
+                class="btn-browse"
+              >
+                <i class="fas fa-folder-open"></i> Browse Files
+              </button>
+            </div>
+          </div>
+          <div v-if="editingMaterial && materialForm.url" class="material-form-group">
+            <label>Current URL</label>
+            <div class="file-info">
+              <i class="fas fa-link"></i>
+              <span>{{ materialForm.url }}</span>
+            </div>
+            <p class="edit-note">Note: File uploads cannot be changed. You can only update the URL for external links.</p>
+          </div>
+          <div class="material-form-actions">
+            <button type="button" @click="closeMaterialModal" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">{{ editingMaterial ? 'Update' : 'Add' }} Material</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showViewMaterialModal && viewingMaterial" class="material-modal-overlay" @click.self="closeViewMaterialModal">
+    <div class="material-view-modal" @click.stop>
+      <div class="material-modal-header">
+        <h3>{{ viewingMaterial && viewingMaterial.title ? viewingMaterial.title : 'Material' }}</h3>
+        <button @click="closeViewMaterialModal" class="material-close-btn" type="button">&times;</button>
+      </div>
+      <div class="material-view-body">
+        <div class="material-view-info">
+          <span class="material-type-badge">{{ viewingMaterial.type }}</span>
+          <a v-if="isExternalLink(viewingMaterial.url)" :href="viewingMaterial.url" target="_blank" class="external-link-btn">
+            <i class="fas fa-external-link-alt"></i> Open in New Tab
+          </a>
+        </div>
+        <div class="material-content-viewer">
+          <div v-if="viewingMaterial && viewingMaterial.type === 'PDF'" class="pdf-viewer">
+            <iframe 
+              v-if="viewingMaterial.url && getMaterialUrl(viewingMaterial.url)"
+              :src="getMaterialUrl(viewingMaterial.url)" 
+              class="material-iframe"
+              frameborder="0"
+            ></iframe>
+            <div v-else class="material-error">
+              <p>PDF URL not available</p>
+            </div>
+          </div>
+          <div v-else-if="viewingMaterial && viewingMaterial.type === 'Video'" class="video-viewer">
+            <video v-if="viewingMaterial.url && getMaterialUrl(viewingMaterial.url)" :src="getMaterialUrl(viewingMaterial.url)" controls class="material-video">
+              Your browser does not support the video tag.
+            </video>
+            <div v-else class="material-error">
+              <p>Video URL not available</p>
+            </div>
+          </div>
+          <div v-else-if="viewingMaterial && viewingMaterial.type === 'Link'" class="link-viewer">
+            <iframe 
+              v-if="viewingMaterial.url"
+              :src="viewingMaterial.url" 
+              class="material-iframe"
+              frameborder="0"
+            ></iframe>
+            <div v-else class="material-error">
+              <p>Link URL not available</p>
+            </div>
+          </div>
+          <div v-else-if="viewingMaterial" class="document-viewer">
+            <iframe 
+              v-if="viewingMaterial.url && getMaterialUrl(viewingMaterial.url)"
+              :src="getMaterialUrl(viewingMaterial.url)" 
+              class="material-iframe"
+              frameborder="0"
+            ></iframe>
+            <div v-else class="material-error">
+              <p>Document URL not available</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -328,6 +441,9 @@ export default {
       activeTab: 'enrollments',
       showMaterialModal: false,
       showAssignmentModal: false,
+      showViewMaterialModal: false,
+      viewingMaterial: null,
+      editingMaterial: null,
       editingAssignment: null,
       tabs: [
         { id: 'enrollments', label: 'Enrollments', icon: 'fas fa-users' },
@@ -338,7 +454,9 @@ export default {
       materialForm: {
         title: '',
         type: '',
-        url: ''
+        url: '',
+        file: null,
+        uploadMethod: 'url'
       },
       assignmentForm: {
         title: '',
@@ -373,9 +491,10 @@ export default {
         const headers = { 'x-auth-token': token };
         const courseId = this.route.params.id;
 
-        const [courseRes, assignmentsRes, enrollmentsRes, studentsRes] = await Promise.all([
+        const [courseRes, assignmentsRes, materialsRes, enrollmentsRes, studentsRes] = await Promise.all([
           axios.get(`${this.apiBaseUrl}/courses/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: null })),
           axios.get(`${this.apiBaseUrl}/assignments/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
+          axios.get(`${this.apiBaseUrl}/materials/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
           axios.get(`${this.apiBaseUrl}/courses/${courseId}/enrollments`, { headers, withCredentials: true }).catch(() => ({ data: [] })),
           axios.get(`${this.apiBaseUrl}/users/students`, { headers, withCredentials: true }).catch(() => ({ data: [] }))
         ]);
@@ -390,6 +509,7 @@ export default {
           };
         }
         this.assignments = assignmentsRes.data?.data || assignmentsRes.data || [];
+        this.materials = materialsRes.data?.data || materialsRes.data || [];
         this.enrolledStudents = enrollmentsRes.data || [];
         const allStudents = studentsRes.data || [];
         
@@ -408,17 +528,41 @@ export default {
     getCourseTitle(course) {
       if (!course) return 'Course';
       if (typeof course === 'string') return course;
-      return course.title || 'Course';
+      if (typeof course !== 'object') return 'Course';
+      
+      let title = course.title || '';
+      if (!title) return 'Course';
+      
+      title = title.trim();
+      
+      if (title.includes('Course Title Teacher Description')) {
+        title = title.replace('Course Title Teacher Description', '').trim();
+      }
+      
+      if (title.includes('Teacher')) {
+        const parts = title.split('Teacher');
+        title = parts[0].trim();
+      }
+      
+      if (title.includes('Description')) {
+        const parts = title.split('Description');
+        title = parts[0].trim();
+      }
+      
+      const words = title.split(/\s+/);
+      if (words.length > 0 && words[0]) {
+        return words[0];
+      }
+      
+      return title || 'Course';
     },
     getCourseDescription(course) {
-      if (!course) return 'Manage course materials, assignments, and grades.';
-      if (typeof course === 'string') return course;
+      if (!course) return '';
+      if (typeof course === 'string') return '';
+      if (typeof course !== 'object') return '';
+      
       const desc = course.description || '';
-      if (desc.includes('Teacher') && desc.includes('Description')) {
-        const parts = desc.split('Description');
-        return parts.length > 1 ? parts[1].trim() : desc;
-      }
-      return desc || 'Manage course materials, assignments, and grades.';
+      return desc.trim();
     },
     formatDate(dateString) {
       if (!dateString) return 'N/A';
@@ -439,28 +583,166 @@ export default {
       };
       return icons[type] || '📚';
     },
-    async saveMaterial() {
-      try {
-        this.materials.push({
-          id: Date.now(),
-          ...this.materialForm,
-          course_id: this.route.params.id
-        });
-        
-        this.closeMaterialModal();
-        alert('Material added successfully!');
-      } catch (error) {
-        alert('Failed to add material');
+    handleFileSelect(event) {
+      if (!event || !event.target || !event.target.files) return;
+      const file = event.target.files[0];
+      if (file) {
+        this.materialForm.file = file;
+        const fileName = file.name || '';
+        const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+        if (!this.materialForm.type || this.materialForm.type === '') {
+          if (fileExtension === 'pdf') {
+            this.materialForm.type = 'PDF';
+          } else if (['mp4', 'avi', 'mov'].includes(fileExtension)) {
+            this.materialForm.type = 'Video';
+          } else {
+            this.materialForm.type = 'Document';
+          }
+        }
       }
     },
-    deleteMaterial(materialId) {
-      if (confirm('Are you sure you want to delete this material?')) {
-        this.materials = this.materials.filter(m => m.id !== materialId);
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    },
+    async saveMaterial() {
+      try {
+        const token = localStorage.getItem('token');
+        const courseId = this.route.params.id;
+        let materialData;
+
+        if (this.editingMaterial) {
+          const headers = { 'x-auth-token': token };
+          materialData = {
+            title: this.materialForm.title,
+            type: this.materialForm.type,
+            url: this.materialForm.url
+          };
+
+          await axios.put(`${this.apiBaseUrl}/materials/${this.editingMaterial.id}`, materialData, { headers, withCredentials: true });
+          await this.fetchCourseData();
+          this.closeMaterialModal();
+          alert('Material updated successfully!');
+        } else {
+          if (this.materialForm.uploadMethod === 'file' && this.materialForm.file) {
+            const formData = new FormData();
+            formData.append('title', this.materialForm.title);
+            formData.append('type', this.materialForm.type);
+            formData.append('course_id', courseId);
+            formData.append('file', this.materialForm.file);
+
+            const headers = {
+              'x-auth-token': token,
+              'Content-Type': 'multipart/form-data'
+            };
+
+            await axios.post(`${this.apiBaseUrl}/materials/upload`, formData, { headers, withCredentials: true });
+          } else {
+            const headers = { 'x-auth-token': token };
+            materialData = {
+              title: this.materialForm.title,
+              type: this.materialForm.type,
+              url: this.materialForm.url,
+              course_id: courseId
+            };
+
+            await axios.post(`${this.apiBaseUrl}/materials`, materialData, { headers, withCredentials: true });
+          }
+
+          await this.fetchCourseData();
+          this.closeMaterialModal();
+          alert('Material added successfully!');
+        }
+      } catch (error) {
+        console.error('Error saving material:', error);
+        alert(`Failed to ${this.editingMaterial ? 'update' : 'add'} material: ` + (error.response?.data?.error || error.message));
       }
+    },
+    async deleteMaterial(materialId) {
+      if (!confirm('Are you sure you want to delete this material?')) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        await axios.delete(`${this.apiBaseUrl}/materials/${materialId}`, { headers, withCredentials: true });
+        await this.fetchCourseData();
+        alert('Material deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting material:', error);
+        alert('Failed to delete material: ' + (error.response?.data?.error || error.message));
+      }
+    },
+    openMaterialModal() {
+      this.showViewMaterialModal = false;
+      this.viewingMaterial = null;
+      this.editingMaterial = null;
+      this.materialForm = { title: '', type: '', url: '', file: null, uploadMethod: 'url' };
+      this.showMaterialModal = true;
+    },
+    editMaterial(material) {
+      if (!material) return;
+      this.editingMaterial = { ...material };
+      this.materialForm = {
+        title: material.title || '',
+        type: material.type || '',
+        url: material.url || '',
+        file: null,
+        uploadMethod: material.url && (material.url.startsWith('http://') || material.url.startsWith('https://')) ? 'url' : (material.url && material.url.startsWith('/uploads/') ? 'file' : 'url')
+      };
+      this.showViewMaterialModal = false;
+      this.viewingMaterial = null;
+      this.showMaterialModal = true;
     },
     closeMaterialModal() {
       this.showMaterialModal = false;
-      this.materialForm = { title: '', type: '', url: '' };
+      this.editingMaterial = null;
+      this.materialForm = { title: '', type: '', url: '', file: null, uploadMethod: 'url' };
+    },
+    openFileBrowser() {
+      if (!this.showMaterialModal) return;
+      this.$nextTick(() => {
+        const fileInput = this.$refs.fileInput;
+        if (fileInput && typeof fileInput.click === 'function') {
+          try {
+            fileInput.click();
+          } catch (error) {
+            console.warn('Error opening file browser:', error);
+          }
+        }
+      });
+    },
+    viewMaterial(material, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      if (!material) return;
+      this.viewingMaterial = { ...material };
+      this.showViewMaterialModal = true;
+      this.showMaterialModal = false;
+    },
+    closeViewMaterialModal() {
+      this.showViewMaterialModal = false;
+      this.viewingMaterial = null;
+    },
+    getMaterialUrl(url) {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+      if (url.startsWith('/uploads/')) {
+        return `${this.apiBaseUrl.replace('/api', '')}${url}`;
+      }
+      return url;
+    },
+    isExternalLink(url) {
+      if (!url) return false;
+      return url.startsWith('http://') || url.startsWith('https://');
     },
     async saveAssignment() {
       try {
@@ -518,21 +800,33 @@ export default {
       return this.grades[`${studentId}_${assignmentId}`] || '';
     },
     updateGrade(studentId, assignmentId, grade) {
-      this.grades[`${studentId}_${assignmentId}`] = grade;
+      if (!studentId || !assignmentId) return;
+      const key = `${studentId}_${assignmentId}`;
+      if (grade === '' || grade === null || grade === undefined) {
+        delete this.grades[key];
+      } else {
+        this.grades[key] = grade;
+      }
     },
     calculateFinalGrade(studentId) {
+      if (!studentId || !Array.isArray(this.assignments)) return '-';
       let total = 0;
       let count = 0;
       this.assignments.forEach(assignment => {
+        if (!assignment || !assignment.id) return;
         const grade = this.grades[`${studentId}_${assignment.id}`];
-        if (grade) {
-          total += parseFloat(grade);
-          count++;
+        if (grade !== undefined && grade !== null && grade !== '') {
+          const numGrade = parseFloat(grade);
+          if (!isNaN(numGrade)) {
+            total += numGrade;
+            count++;
+          }
         }
       });
       return count > 0 ? (total / count).toFixed(1) : '-';
     },
     viewStudentGrades(student) {
+      if (!student || !student.name) return;
       alert(`Viewing grades for ${student.name}`);
     },
     async enrollStudent(studentId) {
@@ -957,15 +1251,10 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-.material-link {
-  color: #4F6466;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.material-link:hover {
-  text-decoration: underline;
+.material-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .btn-icon-danger {
@@ -1105,25 +1394,30 @@ export default {
 }
 
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 
 .modal {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 100000 !important;
+  position: relative !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
 }
 
 .modal-header {
@@ -1328,6 +1622,349 @@ export default {
   
   .tab-button i {
     margin: 0;
+  }
+}
+</style>
+
+<style>
+.material-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.material-modal {
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 1000000 !important;
+  position: relative !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.material-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.material-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a2e;
+}
+
+.material-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-close-btn:hover {
+  color: #1a1a2e;
+}
+
+.material-modal-body {
+  padding: 1.5rem;
+}
+
+.material-form-group {
+  margin-bottom: 1rem;
+}
+
+.material-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.material-form-group input,
+.material-form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.material-form-group input:focus,
+.material-form-group select:focus {
+  outline: none;
+  border-color: #4F6466;
+}
+
+.material-form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.upload-method-options {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.radio-option:hover {
+  border-color: #4F6466;
+  background: #f8f9fa;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: #4F6466;
+  font-weight: 600;
+}
+
+.radio-option span {
+  user-select: none;
+}
+
+.file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-input {
+  display: none;
+}
+
+.btn-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-browse:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 2px dashed #4F6466;
+  border-radius: 8px;
+  color: #1a1a2e;
+}
+
+.file-info i {
+  font-size: 1.5rem;
+  color: #4F6466;
+}
+
+.file-info span {
+  font-weight: 500;
+}
+
+.file-size {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.material-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+
+.material-link-btn:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.material-view-modal {
+  background: white;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow: hidden;
+  z-index: 100000;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.material-view-body {
+  display: flex;
+  flex-direction: column;
+  height: calc(90vh - 80px);
+  overflow: hidden;
+}
+
+.material-view-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.material-type-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #4F6466;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.external-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #4F6466;
+  border: 2px solid #4F6466;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.external-link-btn:hover {
+  background: #4F6466;
+  color: white;
+}
+
+.material-content-viewer {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.material-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  border: none;
+}
+
+.material-video {
+  width: 100%;
+  height: 100%;
+  max-height: calc(90vh - 200px);
+  object-fit: contain;
+}
+
+.pdf-viewer,
+.document-viewer,
+.link-viewer,
+.video-viewer {
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+}
+
+.material-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .material-view-modal {
+    width: 98%;
+    max-height: 95vh;
+  }
+
+  .material-view-body {
+    height: calc(95vh - 80px);
+  }
+
+  .material-iframe,
+  .material-video {
+    min-height: 400px;
+  }
+
+  .material-view-info {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .external-link-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

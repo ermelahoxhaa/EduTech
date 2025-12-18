@@ -2,6 +2,7 @@ import UserStore from './UserStore.js';
 import CourseStore from './CourseStore.js';
 import NotificationStore from './NotificationStore.js';
 import AssignmentStore from './AssignmentStore.js';
+import MaterialStore from './MaterialStore.js';
 
 class DataAccessLayer {
   constructor() {
@@ -9,6 +10,7 @@ class DataAccessLayer {
     this.courseStore = CourseStore;
     this.notificationStore = NotificationStore;
     this.assignmentStore = AssignmentStore;
+    this.materialStore = MaterialStore;
   }
 
   async getUser(id) {
@@ -121,6 +123,30 @@ class DataAccessLayer {
 
   async deleteAssignment(id) {
     return await this.assignmentStore.deleteAssignment(id);
+  }
+
+  async getMaterials() {
+    return await this.materialStore.getAllMaterials();
+  }
+
+  async getMaterial(id) {
+    return await this.materialStore.getMaterialById(id);
+  }
+
+  async getMaterialsByCourseId(courseId) {
+    return await this.materialStore.getMaterialsByCourseId(courseId);
+  }
+
+  async createMaterial(materialData) {
+    return await this.materialStore.createMaterial(materialData);
+  }
+
+  async updateMaterial(id, materialData) {
+    return await this.materialStore.updateMaterial(id, materialData);
+  }
+
+  async deleteMaterial(id) {
+    return await this.materialStore.deleteMaterial(id);
   }
 }
 

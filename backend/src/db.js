@@ -18,7 +18,7 @@ pool.getConnection((err, connection) => {
     console.error('Database connection failed:', err.message);
     process.exit(1); 
   }
-  console.log("MySQL connected");
+  console.log("MySQL pool connected");
   connection.release();
 });
 
@@ -27,3 +27,4 @@ const db = promisePool;
 
 export default db;
 export { promisePool };
+export const getPool = () => pool;

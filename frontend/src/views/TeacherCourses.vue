@@ -146,23 +146,12 @@ export default {
     getCleanTitle(course) {
       if (!course) return 'Course';
       const title = course.title || '';
-      if (title.includes('Teacher') && title.includes('Description')) {
-        const parts = title.split('Teacher');
-        return parts[0].trim() || 'Course';
-      }
-      return title || 'Course';
+      return title.trim() || 'Course';
     },
     getCleanDescription(course) {
-      if (!course) return 'Manage course materials, assignments, and grades for your students.';
+      if (!course) return '';
       const desc = course.description || '';
-      if (desc.includes('Teacher') && desc.includes('Description')) {
-        const parts = desc.split('Description');
-        if (parts.length > 1) {
-          const cleanDesc = parts[1].trim();
-          if (cleanDesc) return cleanDesc;
-        }
-      }
-      return desc || 'Manage course materials, assignments, and grades for your students.';
+      return desc.trim();
     },
     viewCourseDetail(courseId) {
       this.router.push(`/teacher/course/${courseId}`);

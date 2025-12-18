@@ -10,6 +10,8 @@ import coursesRoutes from "./routes/courses.js";
 import usersRoutes from "./routes/users.js";
 import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import assignmentRoutes from "./routes/assignments.js";
+import materialRoutes from "./routes/materials.js";
 
 if (!process.env.JWT_SECRET) {
   console.error('ERROR: JWT_SECRET is not set in environment variables!');
@@ -30,12 +32,15 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static('uploads'));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", coursesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/materials", materialRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend is ready!");
