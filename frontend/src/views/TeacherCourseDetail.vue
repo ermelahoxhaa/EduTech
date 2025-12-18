@@ -143,8 +143,11 @@
 
             <div v-if="activeTab === 'assignments'" class="tab-content">
               <div class="section-header">
-                <h2>📝 Assignments</h2>
-                <button @click="showAssignmentModal = true" class="btn-primary">
+                <div>
+                  <h2>📝 Assignments</h2>
+                  <p class="section-subtitle">Create and manage assignments for your students</p>
+                </div>
+                <button @click="openAssignmentModal" class="btn-primary">
                   <i class="fas fa-plus"></i> Create Assignment
                 </button>
               </div>
@@ -152,32 +155,46 @@
               <div v-if="assignments.length === 0" class="empty-state">
                 <div class="empty-icon">📋</div>
                 <h3>No Assignments Yet</h3>
-                <p>Create assignments for your students to complete.</p>
+                <p>Create your first assignment by clicking the "Create Assignment" button above.</p>
               </div>
 
               <div v-else class="assignments-list">
                 <div v-for="assignment in assignments" :key="assignment.id" class="assignment-card">
                   <div class="assignment-header">
-                    <h3>{{ assignment.title }}</h3>
+                    <div class="assignment-title-section">
+                      <h3>{{ assignment.title }}</h3>
+                      <span class="assignment-status-badge" :class="getAssignmentStatusClass(assignment)">
+                        {{ getAssignmentStatusText(assignment) }}
+                      </span>
+                    </div>
                     <div class="assignment-actions">
-                      <button @click="editAssignment(assignment)" class="btn-icon">
-                        <i class="fas fa-edit"></i>
+                      <button @click="editAssignment(assignment)" class="btn-icon" title="Edit Assignment">
+                        <i class="fas fa-edit"></i> Edit
                       </button>
-                      <button @click="confirmDeleteAssignment(assignment.id)" class="btn-icon-danger">
-                        <i class="fas fa-trash"></i>
+                      <button @click="confirmDeleteAssignment(assignment.id)" class="btn-icon-danger" title="Delete Assignment">
+                        <i class="fas fa-trash"></i> Delete
                       </button>
                     </div>
                   </div>
-                  <p class="assignment-description">{{ assignment.description }}</p>
+                  <div class="assignment-request-section">
+                    <h4 class="assignment-request-label">Assignment Request:</h4>
+                    <p class="assignment-description">{{ assignment.description || 'No description provided.' }}</p>
+                  </div>
                   <div class="assignment-meta">
-                    <span class="meta-item">
-                      <i class="fas fa-calendar"></i>
-                      Due: {{ formatDate(assignment.due_date) }}
-                    </span>
-                    <span class="meta-item">
+                    <div class="meta-item">
+                      <i class="fas fa-calendar-alt"></i>
+                      <div class="meta-content">
+                        <span class="meta-label">Deadline:</span>
+                        <span class="meta-value">{{ formatDate(assignment.due_date) }}</span>
+                      </div>
+                    </div>
+                    <div class="meta-item">
                       <i class="fas fa-star"></i>
-                      Max Score: {{ assignment.max_score }}
-                    </span>
+                      <div class="meta-content">
+                        <span class="meta-label">Max Score:</span>
+                        <span class="meta-value">{{ assignment.max_score || 100 }} points</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -237,8 +254,8 @@
     </main>
 
 
-    <div v-if="showAssignmentModal" class="modal-overlay" @click.self="closeAssignmentModal">
-      <div class="modal" @click.stop>
+    <div v-if="showAssignmentModal" class="assignment-modal-overlay" @click.self="closeAssignmentModal">
+      <div class="assignment-modal" @click.stop>
         <div class="modal-header">
           <h3>{{ editingAssignment ? 'Edit' : 'Create' }} Assignment</h3>
           <button @click="closeAssignmentModal" class="close-btn" type="button">&times;</button>
@@ -246,26 +263,73 @@
         <div class="modal-body">
           <form @submit.prevent="saveAssignment">
             <div class="form-group">
-              <label>Title</label>
-              <input v-model="assignmentForm.title" type="text" required placeholder="Assignment title" />
+              <label for="assignment-title">
+                <i class="fas fa-heading"></i> Assignment Title <span class="required">*</span>
+              </label>
+              <input 
+                id="assignment-title"
+                v-model="assignmentForm.title" 
+                type="text" 
+                required 
+                placeholder="e.g., Chapter 5 Homework, Midterm Project" 
+                class="form-input"
+              />
+              <small class="form-help">Enter a clear and descriptive title for the assignment</small>
             </div>
+            
             <div class="form-group">
-              <label>Description</label>
-              <textarea v-model="assignmentForm.description" rows="4" required placeholder="Assignment description"></textarea>
+              <label for="assignment-request">
+                <i class="fas fa-file-alt"></i> Assignment Request <span class="required">*</span>
+              </label>
+              <textarea 
+                id="assignment-request"
+                v-model="assignmentForm.description" 
+                rows="6" 
+                required 
+                placeholder="Describe what students need to do for this assignment. Include instructions, requirements, and any specific guidelines..."
+                class="form-textarea"
+              ></textarea>
+              <small class="form-help">Provide detailed instructions and requirements for students</small>
             </div>
+            
             <div class="form-row">
               <div class="form-group">
-                <label>Due Date</label>
-                <input v-model="assignmentForm.due_date" type="datetime-local" required />
+                <label for="assignment-deadline">
+                  <i class="fas fa-calendar-alt"></i> Deadline <span class="required">*</span>
+                </label>
+                <input 
+                  id="assignment-deadline"
+                  v-model="assignmentForm.due_date" 
+                  type="datetime-local" 
+                  required 
+                  class="form-input"
+                  :min="getCurrentDateTime()"
+                />
+                <small class="form-help">Select the date and time when the assignment is due</small>
               </div>
               <div class="form-group">
-                <label>Max Score</label>
-                <input v-model="assignmentForm.max_score" type="number" min="1" required placeholder="100" />
+                <label for="assignment-max-score">
+                  <i class="fas fa-star"></i> Max Score <span class="required">*</span>
+                </label>
+                <input 
+                  id="assignment-max-score"
+                  v-model="assignmentForm.max_score" 
+                  type="number" 
+                  min="1" 
+                  max="1000"
+                  required 
+                  placeholder="100" 
+                  class="form-input"
+                />
+                <small class="form-help">Maximum points students can earn (e.g., 100)</small>
               </div>
             </div>
+            
             <div class="form-actions">
               <button type="button" @click="closeAssignmentModal" class="btn-secondary">Cancel</button>
-              <button type="submit" class="btn-primary">{{ editingAssignment ? 'Update' : 'Create' }} Assignment</button>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-check"></i> {{ editingAssignment ? 'Update' : 'Create' }} Assignment
+              </button>
             </div>
           </form>
         </div>
@@ -791,10 +855,41 @@ export default {
         }
       }
     },
+    openAssignmentModal() {
+      this.editingAssignment = null;
+      this.assignmentForm = { title: '', description: '', due_date: '', max_score: 100 };
+      this.showAssignmentModal = true;
+    },
     closeAssignmentModal() {
       this.showAssignmentModal = false;
       this.editingAssignment = null;
       this.assignmentForm = { title: '', description: '', due_date: '', max_score: 100 };
+    },
+    getCurrentDateTime() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    },
+    getAssignmentStatusText(assignment) {
+      if (!assignment || !assignment.due_date) return 'Active';
+      const dueDate = new Date(assignment.due_date);
+      const now = new Date();
+      if (now > dueDate) {
+        return 'Past Due';
+      }
+      const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      if (daysUntilDue <= 3) {
+        return 'Due Soon';
+      }
+      return 'Active';
+    },
+    getAssignmentStatusClass(assignment) {
+      const status = this.getAssignmentStatusText(assignment);
+      return {
+        'status-active': status === 'Active',
+        'status-due-soon': status === 'Due Soon',
+        'status-past-due': status === 'Past Due'
+      };
     },
     getGrade(studentId, assignmentId) {
       return this.grades[`${studentId}_${assignmentId}`] || '';
@@ -1287,45 +1382,134 @@ export default {
 .assignment-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.assignment-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .assignment-header h3 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: #1a1a2e;
+  margin: 0;
+}
+
+.assignment-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-due-soon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-past-due {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .assignment-actions {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   background: transparent;
   border: 1px solid #dee2e6;
   color: #6c757d;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
 .btn-icon:hover {
   background: #f8f9fa;
   color: #4F6466;
+  border-color: #4F6466;
+}
+
+.assignment-request-section {
+  background: #ffffff;
+  border-left: 3px solid #4F6466;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.assignment-request-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4F6466;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .assignment-description {
-  color: #6c757d;
-  margin-bottom: 1rem;
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .assignment-meta {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 0.9rem;
+}
+
+.meta-item i {
+  color: #4F6466;
+  font-size: 1.1rem;
+}
+
+.meta-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meta-label {
+  font-size: 0.75rem;
   color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.meta-value {
+  color: #1a1a2e;
+  font-weight: 600;
 }
 
 .grades-table-container {
@@ -1393,32 +1577,6 @@ export default {
   color: #6c757d;
 }
 
-.modal-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.6) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 99999 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-}
-
-.modal {
-  background: white !important;
-  border-radius: 12px !important;
-  width: 90% !important;
-  max-width: 600px !important;
-  max-height: 90vh !important;
-  overflow-y: auto !important;
-  z-index: 100000 !important;
-  position: relative !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
-}
 
 .modal-header {
   display: flex;
@@ -1450,10 +1608,22 @@ export default {
 }
 
 .form-group label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #1a1a2e;
+  font-size: 0.95rem;
+}
+
+.form-group label i {
+  color: #4F6466;
+}
+
+.required {
+  color: #dc3545;
+  font-weight: 700;
 }
 
 .form-group input,
@@ -1461,16 +1631,45 @@ export default {
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 2px solid #dee2e6;
   border-radius: 8px;
   font-size: 1rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
 }
 
 .form-group input:focus,
 .form-group select:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-input:focus,
+.form-textarea:focus {
   outline: none;
   border-color: #4F6466;
+  box-shadow: 0 0 0 3px rgba(79, 100, 102, 0.1);
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
 }
 
 .form-row {
@@ -1965,6 +2164,81 @@ export default {
   .external-link-btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+.assignment-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.assignment-modal {
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 700px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 1000000 !important;
+  position: relative !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.assignment-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.assignment-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a2e;
+}
+
+.assignment-modal .close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assignment-modal .close-btn:hover {
+  color: #1a1a2e;
+}
+
+.assignment-modal .modal-body {
+  padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .assignment-modal {
+    width: 98%;
+    max-height: 95vh;
   }
 }
 </style>
