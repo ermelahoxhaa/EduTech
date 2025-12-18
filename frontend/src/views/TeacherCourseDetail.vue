@@ -168,6 +168,9 @@
                       </span>
                     </div>
                     <div class="assignment-actions">
+                      <button @click="viewSubmissions(assignment)" class="btn-icon" title="View Submissions">
+                        <i class="fas fa-users"></i> View Submissions
+                      </button>
                       <button @click="editAssignment(assignment)" class="btn-icon" title="Edit Assignment">
                         <i class="fas fa-edit"></i> Edit
                       </button>
@@ -193,6 +196,13 @@
                       <div class="meta-content">
                         <span class="meta-label">Max Score:</span>
                         <span class="meta-value">{{ assignment.max_score || 100 }} points</span>
+                      </div>
+                    </div>
+                    <div class="meta-item">
+                      <i class="fas fa-paper-plane"></i>
+                      <div class="meta-content">
+                        <span class="meta-label">Submissions:</span>
+                        <span class="meta-value">{{ getSubmissionCount(assignment.id) }} students</span>
                       </div>
                     </div>
                   </div>
@@ -477,6 +487,67 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showSubmissionsModal" class="submission-modal-overlay" @click.self="closeSubmissionsModal">
+      <div class="submission-modal" @click.stop>
+        <div class="submission-modal-header">
+          <h3>Submissions: {{ viewingAssignment ? viewingAssignment.title : 'Assignment' }}</h3>
+          <button @click="closeSubmissionsModal" class="submission-close-btn" type="button">&times;</button>
+        </div>
+        <div class="submission-modal-body">
+          <div v-if="assignmentSubmissions.length === 0" class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No Submissions Yet</h3>
+            <p>Students haven't submitted their work for this assignment yet.</p>
+          </div>
+          <div v-else class="submissions-list">
+            <div v-for="submission in assignmentSubmissions" :key="submission.id" class="submission-item">
+              <div class="submission-student-info">
+                <div class="student-details">
+                  <h4>{{ submission.student_name || 'Student' }}</h4>
+                  <p class="student-email">{{ submission.student_email || '' }}</p>
+                  <div class="submission-meta">
+                    <span class="submission-date">
+                      <i class="fas fa-clock"></i>
+                      Submitted: {{ formatDate(submission.submitted_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="submission-content">
+                <div v-if="submission.submission_url" class="submission-file">
+                  <button @click="viewSubmissionFile(submission)" class="btn-view-file">
+                    <i class="fas fa-file"></i> View Submission
+                  </button>
+                </div>
+                <div v-else class="no-file">
+                  <span class="no-file-text">No file attached</span>
+                </div>
+              </div>
+              <div class="submission-grading">
+                <div class="grade-input-group">
+                  <label>
+                    <i class="fas fa-star"></i> Grade (out of {{ viewingAssignment ? viewingAssignment.max_score : 100 }})
+                  </label>
+                  <div class="grade-input-wrapper">
+                    <input 
+                      type="number" 
+                      :value="getGradeForStudent(submission.student_id)"
+                      @change="saveGradeForSubmission(submission, $event.target.value)"
+                      class="grade-input-field"
+                      min="0"
+                      :max="viewingAssignment ? viewingAssignment.max_score : 100"
+                      placeholder="Enter grade"
+                    />
+                    <span class="max-score">/ {{ viewingAssignment ? viewingAssignment.max_score : 100 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -509,6 +580,10 @@ export default {
       viewingMaterial: null,
       editingMaterial: null,
       editingAssignment: null,
+      showSubmissionsModal: false,
+      viewingAssignment: null,
+      assignmentSubmissions: [],
+      assignmentGrades: {},
       tabs: [
         { id: 'enrollments', label: 'Enrollments', icon: 'fas fa-users' },
         { id: 'materials', label: 'Materials', icon: 'fas fa-book' },
@@ -579,6 +654,20 @@ export default {
         
         const enrolledIds = new Set(this.enrolledStudents.map(s => s.id));
         this.availableStudents = allStudents.filter(student => !enrolledIds.has(student.id));
+
+        const gradesPromises = this.assignments.map(assignment =>
+          axios.get(`${this.apiBaseUrl}/grades/assignment/${assignment.id}`, { headers, withCredentials: true })
+            .then(res => {
+              const grades = res.data?.data || [];
+              grades.forEach(grade => {
+                if (grade.student_id && grade.assignment_id) {
+                  this.grades[`${grade.student_id}_${grade.assignment_id}`] = grade.score;
+                }
+              });
+            })
+            .catch(() => {})
+        );
+        await Promise.all(gradesPromises);
       } catch (error) {
         console.error('Error fetching course data:', error);
         alert('Failed to load course data');
@@ -894,14 +983,149 @@ export default {
     getGrade(studentId, assignmentId) {
       return this.grades[`${studentId}_${assignmentId}`] || '';
     },
-    updateGrade(studentId, assignmentId, grade) {
+    async updateGrade(studentId, assignmentId, grade) {
       if (!studentId || !assignmentId) return;
       const key = `${studentId}_${assignmentId}`;
-      if (grade === '' || grade === null || grade === undefined) {
-        delete this.grades[key];
-      } else {
-        this.grades[key] = grade;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        
+        const gradeValue = grade === '' || grade === null || grade === undefined ? null : parseInt(grade);
+        
+        await axios.post(
+          `${this.apiBaseUrl}/grades`,
+          {
+            assignment_id: assignmentId,
+            student_id: studentId,
+            score: gradeValue,
+            feedback: null
+          },
+          { headers, withCredentials: true }
+        );
+        
+        if (gradeValue === null) {
+          delete this.grades[key];
+        } else {
+          this.grades[key] = gradeValue;
+        }
+      } catch (error) {
+        console.error('Error saving grade:', error);
+        alert('Failed to save grade: ' + (error.response?.data?.error || error.message));
       }
+    },
+    viewSubmissions(assignment) {
+      if (!assignment || !assignment.id) {
+        return;
+      }
+      
+      this.viewingAssignment = assignment;
+      this.assignmentSubmissions = [];
+      this.assignmentGrades = {};
+      this.showSubmissionsModal = true;
+      
+      const loadSubmissions = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            this.closeSubmissionsModal();
+            return;
+          }
+          
+          const headers = { 'x-auth-token': token };
+          
+          const [submissionsRes, gradesRes] = await Promise.all([
+            axios.get(`${this.apiBaseUrl}/submissions/assignment/${assignment.id}/all`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
+            axios.get(`${this.apiBaseUrl}/grades/assignment/${assignment.id}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } }))
+          ]);
+          
+          this.assignmentSubmissions = submissionsRes.data?.data || submissionsRes.data || [];
+          
+          const grades = gradesRes.data?.data || gradesRes.data || [];
+          this.assignmentGrades = {};
+          if (Array.isArray(grades)) {
+            grades.forEach(grade => {
+              if (grade && grade.student_id) {
+                this.assignmentGrades[grade.student_id] = grade.score;
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching submissions:', error);
+        }
+      };
+      
+      loadSubmissions();
+    },
+    closeSubmissionsModal() {
+      this.showSubmissionsModal = false;
+      this.viewingAssignment = null;
+      this.assignmentSubmissions = [];
+      this.assignmentGrades = {};
+    },
+    getSubmissionCount(assignmentId) {
+      if (!assignmentId) return 0;
+      if (this.viewingAssignment && this.viewingAssignment.id === assignmentId && this.assignmentSubmissions) {
+        return this.assignmentSubmissions.length;
+      }
+      return 0;
+    },
+    getSubmissionForStudent(studentId) {
+      return this.assignmentSubmissions.find(s => s.student_id === studentId) || null;
+    },
+    getGradeForStudent(studentId) {
+      return this.assignmentGrades[studentId] || '';
+    },
+    async saveGradeForSubmission(submission, gradeValue) {
+      if (!submission || !this.viewingAssignment) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        
+        const grade = gradeValue === '' || gradeValue === null || gradeValue === undefined ? null : parseInt(gradeValue);
+        
+        await axios.post(
+          `${this.apiBaseUrl}/grades`,
+          {
+            assignment_id: this.viewingAssignment.id,
+            student_id: submission.student_id,
+            score: grade,
+            feedback: null
+          },
+          { headers, withCredentials: true }
+        );
+        
+        this.assignmentGrades[submission.student_id] = grade;
+        this.grades[`${submission.student_id}_${this.viewingAssignment.id}`] = grade;
+        
+        alert('Grade saved successfully!');
+      } catch (error) {
+        console.error('Error saving grade:', error);
+        alert('Failed to save grade: ' + (error.response?.data?.error || error.message));
+      }
+    },
+    getSubmissionForAssignment(assignmentId) {
+      if (!assignmentId || !this.viewingAssignment || this.viewingAssignment.id !== assignmentId) {
+        return null;
+      }
+      return this.assignmentSubmissions.find(s => s.assignment_id === assignmentId) || null;
+    },
+    viewSubmission(assignment) {
+      const submission = this.getSubmissionForAssignment(assignment.id);
+      if (submission && submission.submission_url) {
+        const url = submission.submission_url.startsWith('http') 
+          ? submission.submission_url 
+          : `${this.apiBaseUrl.replace('/api', '')}${submission.submission_url}`;
+        window.open(url, '_blank');
+      }
+    },
+    viewSubmissionFile(submission) {
+      if (!submission || !submission.submission_url) return;
+      const url = submission.submission_url.startsWith('http') 
+        ? submission.submission_url 
+        : `${this.apiBaseUrl.replace('/api', '')}${submission.submission_url}`;
+      window.open(url, '_blank');
     },
     calculateFinalGrade(studentId) {
       if (!studentId || !Array.isArray(this.assignments)) return '-';
@@ -2239,6 +2463,253 @@ export default {
   .assignment-modal {
     width: 98%;
     max-height: 95vh;
+  }
+}
+
+.submission-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.submission-modal {
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 1000px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 1000000 !important;
+  position: relative !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.submission-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.submission-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a2e;
+}
+
+.submission-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submission-close-btn:hover {
+  color: #1a1a2e;
+}
+
+.submission-modal-body {
+  padding: 1.5rem;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.submission-item {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.submission-student-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-details h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: #1a1a2e;
+}
+
+.student-details .student-email {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0 0 0.5rem 0;
+}
+
+.submission-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.submission-date {
+  font-size: 0.8rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.submission-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-view-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-file:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.no-file {
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.submission-grading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grade-input-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.grade-input-group label i {
+  color: #4F6466;
+}
+
+.grade-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grade-input-field {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.grade-input-field:focus {
+  outline: none;
+  border-color: #4F6466;
+  box-shadow: 0 0 0 3px rgba(79, 100, 102, 0.1);
+}
+
+.max-score {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.btn-view-submission {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  color: #4F6466;
+  border: 1px solid #4F6466;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-submission:hover {
+  background: #4F6466;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .submission-modal {
+    width: 98%;
+    max-height: 95vh;
+  }
+
+  .submission-item {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .submission-content,
+  .submission-grading {
+    justify-content: stretch;
+  }
+
+  .btn-view-file {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-view-submission {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

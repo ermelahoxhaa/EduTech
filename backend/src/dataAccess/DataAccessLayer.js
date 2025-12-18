@@ -3,6 +3,8 @@ import CourseStore from './CourseStore.js';
 import NotificationStore from './NotificationStore.js';
 import AssignmentStore from './AssignmentStore.js';
 import MaterialStore from './MaterialStore.js';
+import SubmissionStore from './SubmissionStore.js';
+import GradeStore from './GradeStore.js';
 
 class DataAccessLayer {
   constructor() {
@@ -11,6 +13,8 @@ class DataAccessLayer {
     this.notificationStore = NotificationStore;
     this.assignmentStore = AssignmentStore;
     this.materialStore = MaterialStore;
+    this.submissionStore = SubmissionStore;
+    this.gradeStore = GradeStore;
   }
 
   async getUser(id) {
@@ -147,6 +151,58 @@ class DataAccessLayer {
 
   async deleteMaterial(id) {
     return await this.materialStore.deleteMaterial(id);
+  }
+
+  async getSubmission(id) {
+    return await this.submissionStore.getSubmissionById(id);
+  }
+
+  async getSubmissionByAssignmentAndStudent(assignmentId, studentId) {
+    return await this.submissionStore.getSubmissionByAssignmentAndStudent(assignmentId, studentId);
+  }
+
+  async getSubmissionsByAssignment(assignmentId) {
+    return await this.submissionStore.getSubmissionsByAssignment(assignmentId);
+  }
+
+  async getSubmissionsByStudent(studentId) {
+    return await this.submissionStore.getSubmissionsByStudent(studentId);
+  }
+
+  async createSubmission(submissionData) {
+    return await this.submissionStore.createSubmission(submissionData);
+  }
+
+  async updateSubmission(id, submissionData) {
+    return await this.submissionStore.updateSubmission(id, submissionData);
+  }
+
+  async deleteSubmission(id) {
+    return await this.submissionStore.deleteSubmission(id);
+  }
+
+  async getGradesByStudentAndCourse(studentId, courseId) {
+    return await this.gradeStore.getGradesByStudentAndCourse(studentId, courseId);
+  }
+
+  async getGradesByAssignment(assignmentId) {
+    return await this.gradeStore.getGradesByAssignment(assignmentId);
+  }
+
+  async getGrade(id) {
+    return await this.gradeStore.getGradeById(id);
+  }
+
+  async createGrade(gradeData) {
+    return await this.gradeStore.createGrade(gradeData);
+  }
+
+  async updateGrade(id, gradeData) {
+    return await this.gradeStore.updateGrade(id, gradeData);
+  }
+
+  async deleteGrade(id) {
+    return await this.gradeStore.deleteGrade(id);
   }
 }
 

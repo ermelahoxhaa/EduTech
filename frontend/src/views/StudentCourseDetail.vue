@@ -89,25 +89,63 @@
               <div v-else class="assignments-list">
                 <div v-for="assignment in assignments" :key="assignment.id" class="assignment-card">
                   <div class="assignment-header">
-                    <h3>{{ assignment.title }}</h3>
-                    <span class="assignment-status" :class="getAssignmentStatusClass(assignment)">
-                      {{ getAssignmentStatus(assignment) }}
-                    </span>
+                    <div class="assignment-title-section">
+                      <h3>{{ assignment.title }}</h3>
+                      <span class="assignment-status-badge" :class="getAssignmentStatusClass(assignment)">
+                        {{ getAssignmentStatus(assignment) }}
+                      </span>
+                    </div>
                   </div>
-                  <p class="assignment-description">{{ assignment.description || 'No description provided.' }}</p>
+                  <div class="assignment-request-section">
+                    <h4 class="assignment-request-label">Assignment Request:</h4>
+                    <p class="assignment-description">{{ assignment.description || 'No description provided.' }}</p>
+                  </div>
                   <div class="assignment-meta">
                     <div class="meta-item">
-                      <i class="fas fa-calendar"></i>
-                      <span>Due: {{ formatDate(assignment.due_date) }}</span>
+                      <i class="fas fa-calendar-alt"></i>
+                      <div class="meta-content">
+                        <span class="meta-label">Deadline:</span>
+                        <span class="meta-value">{{ formatDate(assignment.due_date) }}</span>
+                      </div>
                     </div>
                     <div class="meta-item">
                       <i class="fas fa-star"></i>
-                      <span>Max Score: {{ assignment.max_score || 100 }}</span>
+                      <div class="meta-content">
+                        <span class="meta-label">Max Score:</span>
+                        <span class="meta-value">{{ assignment.max_score || 100 }} points</span>
+                      </div>
+                    </div>
+                    <div v-if="getSubmissionForAssignment(assignment.id)" class="meta-item">
+                      <i class="fas fa-paperclip"></i>
+                      <div class="meta-content">
+                        <span class="meta-label">Submitted:</span>
+                        <span class="meta-value">{{ formatDate(getSubmissionForAssignment(assignment.id).submitted_at) }}</span>
+                      </div>
                     </div>
                     <div v-if="getGradeForAssignment(assignment.id)" class="meta-item">
                       <i class="fas fa-check-circle"></i>
-                      <span>Grade: {{ getGradeForAssignment(assignment.id) }}/{{ assignment.max_score || 100 }}</span>
+                      <div class="meta-content">
+                        <span class="meta-label">Grade:</span>
+                        <span class="meta-value">{{ getGradeForAssignment(assignment.id) }}/{{ assignment.max_score || 100 }}</span>
+                      </div>
                     </div>
+                  </div>
+                  <div class="assignment-actions">
+                    <button 
+                      @click="openSubmissionModal(assignment)" 
+                      class="btn-submit"
+                      :class="{ 'btn-submitted': getSubmissionForAssignment(assignment.id) }"
+                    >
+                      <i class="fas fa-upload"></i> 
+                      {{ getSubmissionForAssignment(assignment.id) ? 'Update Submission' : 'Submit Assignment' }}
+                    </button>
+                    <button 
+                      v-if="getSubmissionForAssignment(assignment.id) && getSubmissionForAssignment(assignment.id).submission_url"
+                      @click="viewSubmission(assignment)" 
+                      class="btn-view-submission"
+                    >
+                      <i class="fas fa-eye"></i> View Submission
+                    </button>
                   </div>
                 </div>
               </div>
@@ -203,6 +241,67 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showSubmissionModal" class="submission-modal-overlay" @click.self="closeSubmissionModal">
+      <div class="submission-modal" @click.stop>
+        <div class="submission-modal-header">
+          <h3>Submit Assignment: {{ submittingAssignment?.title }}</h3>
+          <button @click="closeSubmissionModal" class="submission-close-btn" type="button">&times;</button>
+        </div>
+        <div class="submission-modal-body">
+          <form @submit.prevent="submitAssignment" enctype="multipart/form-data">
+            <div class="submission-form-group">
+              <label>
+                <i class="fas fa-upload"></i> Upload File <span class="required">*</span>
+              </label>
+              <div class="file-upload-wrapper">
+                <input 
+                  ref="submissionFileInput"
+                  type="file" 
+                  @change="handleFileSelect"
+                  accept=".pdf,.doc,.docx,.txt,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi,.mov"
+                  class="file-input"
+                />
+                <div v-if="submissionForm.file" class="file-info">
+                  <i class="fas fa-file"></i>
+                  <span>{{ submissionForm.file.name }}</span>
+                  <span class="file-size">({{ formatFileSize(submissionForm.file.size) }})</span>
+                </div>
+                <button 
+                  v-if="!submissionForm.file" 
+                  type="button" 
+                  @click="openFileBrowser" 
+                  class="btn-browse"
+                >
+                  <i class="fas fa-folder-open"></i> Browse Files
+                </button>
+              </div>
+              <small class="form-help">Upload your assignment file (PDF, Word, images, videos, or archives)</small>
+            </div>
+            
+            <div class="submission-form-group">
+              <label>
+                <i class="fas fa-link"></i> Or Enter URL (Alternative)
+              </label>
+              <input 
+                v-model="submissionForm.submission_url" 
+                type="url" 
+                placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                class="form-input"
+              />
+              <small class="form-help">If your file is hosted online, you can provide a link instead</small>
+            </div>
+            
+            <div class="submission-form-actions">
+              <button type="button" @click="closeSubmissionModal" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-check"></i> Submit Assignment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -214,10 +313,18 @@ import axios from 'axios';
 export default {
   name: 'StudentCourseDetail',
   setup() {
-    const { user, isAuthenticated, checkAuth, hasRole, logout } = useAuth();
+    const auth = useAuth();
     const router = useRouter();
     const route = useRoute();
-    return { user, isAuthenticated, checkAuth, hasRole, router, route, logout };
+    return { 
+      user: auth.user, 
+      isAuthenticated: auth.isAuthenticated, 
+      checkAuth: auth.checkAuth, 
+      hasRole: auth.hasRole, 
+      router, 
+      route, 
+      logout: auth.logout 
+    };
   },
   data() {
     return {
@@ -229,6 +336,13 @@ export default {
       activeTab: 'materials',
       showViewMaterialModal: false,
       viewingMaterial: null,
+      showSubmissionModal: false,
+      submittingAssignment: null,
+      submissions: {},
+      submissionForm: {
+        file: null,
+        submission_url: ''
+      },
       tabs: [
         { id: 'materials', label: 'Materials', icon: 'fas fa-book' },
         { id: 'assignments', label: 'Assignments', icon: 'fas fa-tasks' },
@@ -238,12 +352,11 @@ export default {
     };
   },
   async created() {
+    await this.checkAuth();
+    
     if (!this.isAuthenticated) {
-      const isAuth = await this.checkAuth();
-      if (!isAuth) {
-        this.router.push('/login');
-        return;
-      }
+      this.router.push('/login');
+      return;
     }
 
     if (!this.hasRole(['student'])) {
@@ -251,15 +364,32 @@ export default {
       return;
     }
 
-    await this.fetchCourseData();
+    if (this.user && this.user.id) {
+      await this.fetchCourseData();
+    } else {
+      this.router.push('/login');
+    }
   },
   methods: {
     async fetchCourseData() {
       try {
         this.loading = true;
         const token = localStorage.getItem('token');
+        if (!token) {
+          this.router.push('/login');
+          return;
+        }
         const headers = { 'x-auth-token': token };
         const courseId = this.route.params.id;
+        const studentId = this.user?.id;
+
+        if (!studentId) {
+          await this.checkAuth();
+          if (!this.user?.id) {
+            this.router.push('/login');
+            return;
+          }
+        }
 
         const [courseRes, assignmentsRes, materialsRes, gradesRes] = await Promise.all([
           axios.get(`${this.apiBaseUrl}/courses/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: null })),
@@ -267,6 +397,21 @@ export default {
           axios.get(`${this.apiBaseUrl}/materials/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } })),
           axios.get(`${this.apiBaseUrl}/grades/student/${this.user.id}/course/${courseId}`, { headers, withCredentials: true }).catch(() => ({ data: { data: [] } }))
         ]);
+
+        this.assignments = assignmentsRes.data?.data || assignmentsRes.data || [];
+        
+        const submissionPromises = this.assignments.map(assignment => 
+          axios.get(`${this.apiBaseUrl}/submissions/assignment/${assignment.id}`, { headers, withCredentials: true })
+            .then(res => ({ assignmentId: assignment.id, submission: res.data?.data }))
+            .catch(() => ({ assignmentId: assignment.id, submission: null }))
+        );
+        
+        const submissionResults = await Promise.all(submissionPromises);
+        submissionResults.forEach(({ assignmentId, submission }) => {
+          if (submission) {
+            this.submissions[assignmentId] = submission;
+          }
+        });
 
         if (courseRes.data) {
           this.course = {
@@ -276,7 +421,6 @@ export default {
             teacher_id: courseRes.data.teacher_id
           };
         }
-        this.assignments = assignmentsRes.data?.data || assignmentsRes.data || [];
         this.materials = materialsRes.data?.data || materialsRes.data || [];
         
         const gradesData = gradesRes.data?.data || gradesRes.data || [];
@@ -376,6 +520,13 @@ export default {
       }
       return url;
     },
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    },
     isExternalLink(url) {
       if (!url) return false;
       return url.startsWith('http://') || url.startsWith('https://');
@@ -417,6 +568,107 @@ export default {
         }
       });
       return count > 0 ? (total / count).toFixed(1) : '-';
+    },
+    getSubmissionForAssignment(assignmentId) {
+      return this.submissions[assignmentId] || null;
+    },
+    openSubmissionModal(assignment) {
+      if (!assignment) return;
+      this.submittingAssignment = assignment;
+      const existingSubmission = this.getSubmissionForAssignment(assignment.id);
+      this.submissionForm = {
+        file: null,
+        submission_url: existingSubmission?.submission_url || ''
+      };
+      this.showSubmissionModal = true;
+    },
+    closeSubmissionModal() {
+      this.showSubmissionModal = false;
+      this.submittingAssignment = null;
+      this.submissionForm = { file: null, submission_url: '' };
+    },
+    handleFileSelect(event) {
+      if (!event || !event.target || !event.target.files) return;
+      const file = event.target.files[0];
+      if (file) {
+        this.submissionForm.file = file;
+      }
+    },
+    openFileBrowser() {
+      if (!this.showSubmissionModal) return;
+      this.$nextTick(() => {
+        const fileInput = this.$refs.submissionFileInput;
+        if (fileInput && typeof fileInput.click === 'function') {
+          try {
+            fileInput.click();
+          } catch (error) {
+            console.warn('Error opening file browser:', error);
+          }
+        }
+      });
+    },
+    async submitAssignment() {
+      if (!this.submittingAssignment) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'x-auth-token': token };
+        
+        if (this.submissionForm.file) {
+          const formData = new FormData();
+          formData.append('file', this.submissionForm.file);
+          formData.append('assignment_id', this.submittingAssignment.id);
+          
+          const response = await axios.post(
+            `${this.apiBaseUrl}/submissions/upload`,
+            formData,
+            { 
+              headers: { 
+                'x-auth-token': token
+              }, 
+              withCredentials: true 
+            }
+          );
+          
+          if (response.data?.data) {
+            this.submissions[this.submittingAssignment.id] = response.data.data;
+          }
+        } else if (this.submissionForm.submission_url) {
+          const submissionData = {
+            assignment_id: this.submittingAssignment.id,
+            submission_url: this.submissionForm.submission_url
+          };
+          
+          const response = await axios.post(
+            `${this.apiBaseUrl}/submissions`,
+            submissionData,
+            { headers, withCredentials: true }
+          );
+          
+          if (response.data?.data) {
+            this.submissions[this.submittingAssignment.id] = response.data.data;
+          }
+        } else {
+          alert('Please select a file or enter a URL');
+          return;
+        }
+        
+        await this.fetchCourseData();
+        this.closeSubmissionModal();
+        alert('Assignment submitted successfully!');
+      } catch (error) {
+        console.error('Error submitting assignment:', error);
+        alert('Failed to submit assignment: ' + (error.response?.data?.error || error.message));
+      }
+    },
+    viewSubmission(assignment) {
+      const submission = this.getSubmissionForAssignment(assignment.id);
+      if (submission && submission.submission_url) {
+        const url = submission.submission_url.startsWith('http') 
+          ? submission.submission_url 
+          : `${this.apiBaseUrl.replace('/api', '')}${submission.submission_url}`;
+        window.open(url, '_blank');
+      }
     },
     async handleLogout() {
       await this.logout();
@@ -680,20 +932,31 @@ export default {
 .assignment-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.assignment-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .assignment-header h3 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: #1a1a2e;
+  margin: 0;
 }
 
-.assignment-status {
-  padding: 0.35rem 0.85rem;
+.assignment-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  width: fit-content;
 }
 
 .status-active {
@@ -716,22 +979,122 @@ export default {
   color: #92400e;
 }
 
-.assignment-description {
-  color: #6c757d;
+.assignment-request-section {
+  background: #ffffff;
+  border-left: 3px solid #4F6466;
+  padding: 1rem;
   margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.assignment-request-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4F6466;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.assignment-description {
+  color: #1a1a2e;
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .assignment-meta {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.9rem;
-  color: #6c757d;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.meta-item i {
+  color: #4F6466;
+  font-size: 1.1rem;
+}
+
+.meta-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.meta-value {
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.assignment-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-submit:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.btn-submit.btn-submitted {
+  background: #198754;
+}
+
+.btn-submit.btn-submitted:hover {
+  background: #157347;
+}
+
+.btn-view-submission {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  color: #4F6466;
+  border: 1px solid #4F6466;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-submission:hover {
+  background: #4F6466;
+  color: white;
 }
 
 .grades-table-container {
@@ -1082,6 +1445,234 @@ export default {
   }
 
   .external-link-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.submission-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.submission-modal {
+  background: white !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 1000000 !important;
+  position: relative !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.submission-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.submission-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a2e;
+}
+
+.submission-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submission-close-btn:hover {
+  color: #1a1a2e;
+}
+
+.submission-modal-body {
+  padding: 1.5rem;
+}
+
+.submission-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.submission-form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 0.95rem;
+}
+
+.submission-form-group label i {
+  color: #4F6466;
+}
+
+.submission-form-group .required {
+  color: #dc3545;
+  font-weight: 700;
+}
+
+.submission-form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.submission-form-group input:focus {
+  outline: none;
+  border-color: #4F6466;
+  box-shadow: 0 0 0 3px rgba(79, 100, 102, 0.1);
+}
+
+.submission-form-group .form-help {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.submission-form-group .file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.submission-form-group .file-input {
+  display: none;
+}
+
+.submission-form-group .btn-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.submission-form-group .btn-browse:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+.submission-form-group .file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 2px dashed #4F6466;
+  border-radius: 8px;
+  color: #1a1a2e;
+}
+
+.submission-form-group .file-info i {
+  font-size: 1.5rem;
+  color: #4F6466;
+}
+
+.submission-form-group .file-info span {
+  font-weight: 500;
+}
+
+.submission-form-group .file-size {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.submission-form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.submission-form-actions .btn-secondary {
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submission-form-actions .btn-secondary:hover {
+  background: #f8f9fa;
+}
+
+.submission-form-actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #4F6466;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submission-form-actions .btn-primary:hover {
+  background: #3a4a4b;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .submission-modal {
+    width: 98%;
+    max-height: 95vh;
+  }
+  
+  .assignment-actions {
+    flex-direction: column;
+  }
+  
+  .btn-submit,
+  .btn-view-submission {
     width: 100%;
     justify-content: center;
   }

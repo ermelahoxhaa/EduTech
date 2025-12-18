@@ -12,6 +12,8 @@ import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import assignmentRoutes from "./routes/assignments.js";
 import materialRoutes from "./routes/materials.js";
+import submissionRoutes from "./routes/submissions.js";
+import gradesRoutes from "./routes/grades.js";
 
 if (!process.env.JWT_SECRET) {
   console.error('ERROR: JWT_SECRET is not set in environment variables!');
@@ -41,6 +43,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/materials", materialRoutes);
+app.use("/api/submissions", submissionRoutes);
+app.use("/api/grades", gradesRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend is ready!");
