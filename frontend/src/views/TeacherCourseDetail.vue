@@ -507,7 +507,7 @@
       </div>
     </div>
 
-  <div v-if="showSubmissionsModal" class="submission-modal-overlay" @click.self="closeSubmissionsModal">
+    <div v-if="showSubmissionsModal" class="submission-modal-overlay" @click.self="closeSubmissionsModal">
       <div class="submission-modal" @click.stop>
         <div class="submission-modal-header">
           <h3>Submissions: {{ viewingAssignment ? viewingAssignment.title : 'Assignment' }}</h3>

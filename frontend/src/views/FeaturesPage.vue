@@ -13,30 +13,6 @@
         <div class="features-grid">
           <div class="feature-card">
             <div class="feature-icon-wrapper">
-              <span class="feature-icon">📅</span>
-            </div>
-            <h3>Smart Timetabling</h3>
-            <p>Automated scheduling with intelligent conflict prevention and resource optimization.</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">💬</span>
-            </div>
-            <h3>Unified Communications</h3>
-            <p>Seamless broadcasts, announcements, and integrated parent-teacher portals.</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
-              <span class="feature-icon">📈</span>
-            </div>
-            <h3>Learning Insights</h3>
-            <p>Advanced performance analytics layered over curriculum goals and benchmarks.</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon-wrapper">
               <span class="feature-icon">📝</span>
             </div>
             <h3>Assignment Management</h3>
@@ -56,7 +32,7 @@
               <span class="feature-icon">🔔</span>
             </div>
             <h3>Real-time Notifications</h3>
-            <p>Instant alerts for important updates, deadlines, and announcements.</p>
+            <p>Instant alerts for important updates.</p>
           </div>
         </div>
       </div>
@@ -131,6 +107,8 @@ export default {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .feature-card {
