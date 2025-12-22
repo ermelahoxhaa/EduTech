@@ -364,7 +364,6 @@
         </div>
       </div>
     </div>
-  </div>
 
   <div v-if="showMaterialModal" class="material-modal-overlay" @click.self="closeMaterialModal">
     <div class="material-modal" @click.stop>
@@ -568,6 +567,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script>
